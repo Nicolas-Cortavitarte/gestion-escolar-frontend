@@ -1,0 +1,66 @@
+.comparacion-financiera {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+}
+
+.comparacion-financiera h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.comparacion-financiera > p {
+  margin: 0.35rem 0 1.75rem;
+  color: #617087;
+}
+
+.comparacion-financiera__fila {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) 8rem;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.comparacion-financiera__fila strong {
+  text-align: right;
+}
+
+.comparacion-financiera__pista {
+  height: 1.25rem;
+  overflow: hidden;
+  background: #edf2f7;
+  border-radius: 999px;
+}
+
+.comparacion-financiera__barra {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.comparacion-financiera__barra--ingresos {
+  background: #15945c;
+}
+
+.comparacion-financiera__barra--egresos {
+  background: #dc5151;
+}
+
+@media (max-width: 650px) {
+  .comparacion-financiera__fila {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
+  }
+
+  .comparacion-financiera__pista {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .comparacion-financiera__fila strong {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
