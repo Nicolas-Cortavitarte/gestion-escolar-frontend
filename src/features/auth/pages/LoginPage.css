@@ -1,0 +1,191 @@
+.login-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.login-page__presentacion {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(2rem, 5vw, 5rem);
+  color: #fff;
+  background:
+    radial-gradient(circle at 25% 65%, #3459a2 0%, transparent 45%),
+    linear-gradient(120deg, #204589, #162039);
+}
+
+.login-page__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: clamp(1.25rem, 2.3vw, 2rem);
+  font-weight: 700;
+}
+
+.login-page__simbolo {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid currentColor;
+  border-radius: 0.75rem;
+}
+
+.login-page__mensaje {
+  max-width: 32rem;
+}
+
+.login-page__mensaje p,
+.login-page__pie {
+  color: #dce6fa;
+}
+
+.login-page__mensaje h2 {
+  margin: 0.75rem 0 0;
+  font-size: clamp(2rem, 4vw, 3.75rem);
+  line-height: 1.1;
+}
+
+.login-page__pie {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.login-page__acceso {
+  display: grid;
+  place-items: center;
+  padding: 3rem 1.5rem;
+  background: #f8fafc;
+}
+
+.login-page__contenido {
+  width: min(100%, 27rem);
+}
+
+.login-page__etiqueta {
+  margin: 0 0 1rem;
+  color: #315797;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.login-page__contenido h1 {
+  margin: 0;
+  color: #101b32;
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+}
+
+.login-page__descripcion {
+  margin: 0.75rem 0 2.5rem;
+  color: #617087;
+}
+
+.login-page__formulario,
+.login-page__campo {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.login-page__formulario {
+  gap: 1.5rem;
+}
+
+.login-page__campo label {
+  font-weight: 600;
+}
+
+.login-page__campo input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  color: #101b32;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+.login-page__campo input:focus-visible {
+  outline: 3px solid #9bb9eb;
+  outline-offset: 2px;
+}
+
+.login-page__error {
+  margin: 0;
+  color: #a32929;
+}
+
+.login-page__boton {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.95rem 1rem;
+  color: #fff;
+  font-weight: 700;
+  background: #f47716;
+  border: 0;
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.login-page__boton:hover {
+  background: #dc6408;
+}
+
+.login-page__boton:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    display: block;
+    min-height: 100dvh;
+    background: #f8fafc;
+  }
+
+  .login-page__presentacion {
+    min-height: 6.5rem;
+    padding: 1.1rem 1.25rem 2rem;
+  }
+
+  .login-page__marca {
+    gap: 0.6rem;
+    margin: 1rem;
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .login-page__simbolo {
+    flex-shrink: 0;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 0.5rem;
+  }
+
+  .login-page__mensaje,
+  .login-page__pie {
+    display: none;
+  }
+
+  .login-page__acceso {
+    position: relative;
+    display: block;
+    min-height: calc(100dvh - 5.25rem);
+    margin-top: -1.25rem;
+    padding: clamp(2rem, 7vh, 4rem) 1.5rem 3rem;
+    background: #f8fafc;
+  }
+
+  .login-page__contenido {
+    width: min(100%, 27rem);
+    margin-inline: auto;
+  }
+
+  .login-page__descripcion {
+    margin-bottom: 2rem;
+  }
+
+  .login-page__campo input,
+  .login-page__boton {
+    min-height: 3.25rem;
+  }
+}
