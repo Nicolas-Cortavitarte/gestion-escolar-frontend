@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import type { LoginResponse } from "../../features/auth/auth.types";
+import { AdminLayout } from "../../layouts/admin/AdminLayout";
+import { AdminDashboardPage } from "../../features/dashboard/pages/AdminDashboardPage";
 
 interface AppRoutesProps {
     sesion: LoginResponse | null
@@ -16,12 +18,9 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
             <Route path="/login" element={sesion ? <Navigate to={rutaDelRol} replace /> : <LoginPage onLogin={onLogin}/>} />
 
             <Route path="/admin" element={sesion?.rol === 'ADMIN' ? (
-                <main>
-                    <h1>Panel del administrador</h1>
-                    <button type="button" onClick={onLogout}>
-                        Cerrar sesión
-                    </button>
-                </main>
+                <AdminLayout onLogout={onLogout}>
+                    <AdminDashboardPage token={sesion.token} />
+                </AdminLayout>
             ) : (
                 <Navigate to={sesion ? rutaDelRol : '/login'} replace />
             )} />

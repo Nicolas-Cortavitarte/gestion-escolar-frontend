@@ -1,0 +1,192 @@
+.admin-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.admin-layout__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 2rem 1rem;
+  color: #fff;
+  background: #204589;
+}
+
+.admin-layout__brand {
+  display: block;
+  padding-inline: 0.75rem;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.admin-layout__nav {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.admin-layout__nav a {
+  padding: 0.8rem 0.75rem;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 0.6rem;
+}
+
+.admin-layout__nav a:hover,
+.admin-layout__nav a:focus-visible {
+  background: #163569;
+}
+
+.admin-layout__sidebar-account,
+.admin-layout__close-button,
+.admin-layout__mobile-heading,
+.admin-layout__backdrop {
+  display: none;
+}
+
+.admin-layout__workspace {
+  min-width: 0;
+}
+
+.admin-layout__header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 76px;
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-layout__desktop-account {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-layout__desktop-account button,
+.admin-layout__sidebar-account button {
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.admin-layout__desktop-account button {
+  color: #204589;
+  background: #fff;
+  border: 1px solid #b7c8e2;
+}
+
+.admin-layout__content {
+  width: min(100%, 1200px);
+  margin-inline: auto;
+  padding: 2rem;
+}
+
+@media (max-width: 760px) {
+  .admin-layout {
+    display: block;
+  }
+
+  .admin-layout__sidebar {
+    position: fixed;
+    z-index: 20;
+    inset: 0 auto 0 0;
+    width: min(82vw, 300px);
+    gap: 2rem;
+    padding: 1.5rem 1rem;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 200ms ease, visibility 200ms ease;
+  }
+
+  .admin-layout__sidebar--open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .admin-layout__sidebar-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .admin-layout__brand {
+    padding: 0;
+    font-size: 1rem;
+  }
+
+  .admin-layout__close-button {
+    display: block;
+    color: #fff;
+    font: inherit;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .admin-layout__sidebar-account {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding: 1rem 0.75rem 0;
+    border-top: 1px solid #6f91cb;
+  }
+
+  .admin-layout__sidebar-account button {
+    width: fit-content;
+    color: #204589;
+    background: #fff;
+    border: 0;
+  }
+
+  .admin-layout__backdrop {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    display: block;
+    width: 100%;
+    background: rgb(16 27 50 / 55%);
+    border: 0;
+    cursor: pointer;
+  }
+
+  .admin-layout__header {
+    justify-content: flex-start;
+    min-height: 64px;
+    padding: 0.75rem 1rem;
+  }
+
+  .admin-layout__desktop-account {
+    display: none;
+  }
+
+  .admin-layout__mobile-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .admin-layout__open-button {
+    padding: 0.3rem 0.5rem;
+    color: #204589;
+    font: inherit;
+    font-size: 1.5rem;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .admin-layout__content {
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-layout__sidebar {
+    transition: none;
+  }
+}
