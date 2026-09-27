@@ -1,0 +1,156 @@
+.estudiantes-page h1 {
+  margin: 0 0 2rem;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+}
+
+.estudiantes-page label {
+  display: block;
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+.estudiantes-page__busqueda {
+  width: min(100%, 28rem);
+  padding: 0.8rem 1rem;
+  color: #101b32;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
+}
+
+.estudiantes-page__busqueda:focus-visible {
+  outline: 3px solid #9bb9eb;
+  outline-offset: 2px;
+}
+
+.estudiantes-page__tabla {
+  max-width: 100%;
+  margin-top: 2rem;
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.8rem;
+}
+
+.estudiantes-page table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.estudiantes-page th,
+.estudiantes-page td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.estudiantes-page th {
+  color: #52627a;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.estudiantes-page tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.estudiantes-page tbody tr:hover {
+  background: #f8fafc;
+}
+
+.estudiantes-page thead {
+  background: #204589;
+}
+
+.estudiantes-page th {
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 0;
+}
+
+.estudiantes-page__modal {
+  width: min(90vw, 520px);
+  max-height: calc(100dvh - 2rem);
+  padding: 1.5rem;
+  color: #101b32;
+  background: #fff;
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgb(16 27 50 / 25%);
+}
+
+.estudiantes-page__modal::backdrop {
+  background: rgb(16 27 50 / 60%);
+}
+
+.estudiantes-page__modal form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.estudiantes-page__modal h2 {
+  margin: 0 0 0.5rem;
+}
+
+.estudiantes-page__modal input {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+}
+
+.estudiantes-page__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.estudiantes-page__modal-actions button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.estudiantes-page__cancelar {
+  color: #204589;
+  background: #fff;
+  border: 1px solid #b7c8e2;
+}
+
+.estudiantes-page__guardar {
+  color: #fff;
+  background: #f47716;
+  border: 1px solid #f47716;
+}
+
+.estudiantes-page__guardar:hover:not(:disabled) {
+  background: #dc6408;
+}
+
+.estudiantes-page__modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.estudiantes-page__editar {
+  background-color: #f47716;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+@media (max-width: 420px) {
+  .estudiantes-page__modal-actions button {
+    flex: 1;
+  }
+}
