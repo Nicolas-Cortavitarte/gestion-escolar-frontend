@@ -27,3 +27,91 @@
     padding: 24px 16px 48px;
   }
 }
+
+.nueva-matricula__opciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.nueva-matricula__opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid #cbd4e1;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nueva-matricula__opcion strong {
+  color: #14233b;
+  font-size: 1.15rem;
+}
+
+.nueva-matricula__opcion span {
+  color: #596579;
+  line-height: 1.5;
+}
+
+.nueva-matricula__opcion:hover {
+  border-color: #1e4f8f;
+  background: #f7f9fc;
+}
+
+.nueva-matricula__opcion:focus-visible {
+  outline: 3px solid #92b7ed;
+  outline-offset: 3px;
+}
+
+.nueva-matricula__proceso {
+  margin: 0 0 20px;
+  color: #253550;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .nueva-matricula__opciones {
+    grid-template-columns: 1fr;
+  }
+
+  .nueva-matricula__opcion {
+    padding: 24px 20px;
+  }
+}
+
+.nueva-matricula__barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.nueva-matricula__barra .nueva-matricula__proceso {
+  margin: 0;
+}
+
+.nueva-matricula__cambiar {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #cbd4e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #253550;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nueva-matricula__cambiar:hover {
+  background: #eef4fc;
+}
+
+.nueva-matricula__cambiar:focus-visible {
+  outline: 3px solid #92b7ed;
+  outline-offset: 2px;
+}
