@@ -78,6 +78,18 @@
   border: 1px solid #b7c8e2;
 }
 
+.admin-layout__desktop-account button {
+  color: #204589;
+  background: #fff;
+  border: 1px solid #b7c8e2;
+}
+
+.admin-layout__desktop-account button:hover,
+.admin-layout__desktop-account button:focus-visible {
+  background: #b81616;
+  color: white;
+}
+
 .admin-layout__content {
   width: min(100%, 1200px);
   margin-inline: auto;

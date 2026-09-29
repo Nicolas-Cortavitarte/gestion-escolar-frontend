@@ -56,6 +56,13 @@ export function AdminLayout({ children, onLogout }: AdminLayoutProps) {
           <Link to="/admin/estudiantes" onClick={() => setMenuAbierto(false)}>
             Estudiantes
           </Link>
+
+          <Link
+            to="/admin/matriculas/nueva"
+            onClick={() => setMenuAbierto(false)}
+          >
+            Nueva matrícula
+          </Link>
         </nav>
 
         <div className="admin-layout__sidebar-account">
