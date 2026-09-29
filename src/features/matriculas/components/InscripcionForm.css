@@ -20,8 +20,10 @@
 }
 
 .inscripcion__tarjeta > input,
-.inscripcion__tarjeta > select {
+.inscripcion__tarjeta > select,
+.inscripcion__apoderado input {
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 10px 12px;
   box-sizing: border-box;
@@ -32,17 +34,11 @@
   font: inherit;
 }
 
-.inscripcion__tarjeta input:focus-visible,
-.inscripcion__tarjeta select:focus-visible,
-.inscripcion__tarjeta button:focus-visible {
+.inscripcion input:focus-visible,
+.inscripcion select:focus-visible,
+.inscripcion button:focus-visible {
   outline: 3px solid #92b7ed;
   outline-offset: 2px;
-}
-
-@media (max-width: 600px) {
-  .inscripcion__tarjeta {
-    padding: 20px 16px;
-  }
 }
 
 .inscripcion__apoderado {
@@ -54,22 +50,11 @@
   background: #f7f9fc;
 }
 
-.inscripcion__apoderado input {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  box-sizing: border-box;
-  border: 1px solid #cbd4e1;
-  border-radius: 8px;
-  background: #fff;
-  color: #14233b;
-  font: inherit;
-}
-
 .inscripcion__tarjeta fieldset {
   display: flex;
   flex-wrap: wrap;
   gap: 12px 24px;
+  min-width: 0;
   margin: 8px 0 0;
   padding: 16px;
   border: 1px solid #e1e6ee;
@@ -87,13 +72,7 @@
   accent-color: #1e4f8f;
 }
 
-@media (max-width: 600px) {
-  .inscripcion__apoderado {
-    padding: 16px;
-  }
-}
-
-.inscripcion__tarjeta button {
+.inscripcion button {
   width: fit-content;
   min-height: 44px;
   padding: 10px 20px;
@@ -106,28 +85,22 @@
   cursor: pointer;
 }
 
-.inscripcion__tarjeta button:hover:not(:disabled) {
+.inscripcion button:hover:not(:disabled) {
   background: #dd5e0b;
 }
 
-.inscripcion__tarjeta button:disabled {
+.inscripcion button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-@media (max-width: 600px) {
-  .inscripcion__tarjeta button {
-    width: 100%;
-  }
-}
-
-.inscripcion__tarjeta .inscripcion__boton-secundario {
+.inscripcion .inscripcion__boton-secundario {
   border: 1px solid #cbd4e1;
   background: #fff;
   color: #253550;
 }
 
-.inscripcion__tarjeta .inscripcion__boton-secundario:hover:not(:disabled) {
+.inscripcion .inscripcion__boton-secundario:hover:not(:disabled) {
   border-color: #1e4f8f;
   background: #eef4fc;
 }
@@ -140,20 +113,13 @@
   margin-top: 12px;
 }
 
-.inscripcion__acciones button {
+.inscripcion .inscripcion__acciones button {
   width: auto;
   min-width: 0;
 }
 
-@media (max-width: 600px) {
-  .inscripcion__acciones button {
-    padding-inline: 12px;
-    font-size: 0.875rem;
-  }
-}
-
-.inscripcion__tarjeta [role="alert"],
-.inscripcion__tarjeta [role="status"] {
+.inscripcion [role="alert"],
+.inscripcion [role="status"] {
   margin: 0;
   padding: 12px 16px;
   border: 1px solid;
@@ -162,13 +128,13 @@
   overflow-wrap: anywhere;
 }
 
-.inscripcion__tarjeta [role="alert"] {
+.inscripcion [role="alert"] {
   border-color: #fecaca;
   background: #fef2f2;
   color: #991b1b;
 }
 
-.inscripcion__tarjeta [role="status"] {
+.inscripcion [role="status"] {
   border-color: #bbf7d0;
   background: #f0fdf4;
   color: #166534;
@@ -179,4 +145,30 @@
   background: #f1f5f9;
   color: #596579;
   cursor: not-allowed;
+}
+
+.inscripcion__mensajes:has(> *) {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .inscripcion__tarjeta {
+    padding: 20px 16px;
+  }
+
+  .inscripcion__apoderado {
+    padding: 16px;
+  }
+
+  .inscripcion button {
+    width: 100%;
+  }
+
+  .inscripcion .inscripcion__acciones button {
+    width: auto;
+    padding-inline: 12px;
+    font-size: 0.875rem;
+  }
 }

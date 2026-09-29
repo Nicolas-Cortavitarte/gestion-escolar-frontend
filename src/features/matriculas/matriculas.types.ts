@@ -53,3 +53,13 @@ export interface ApoderadoExistente {
   nombre: string;
   apellidos: string;
 }
+
+export interface CrearMatriculaRequest {
+  estudianteId: string;
+  anioLectivo: number;
+  nivel: string;
+  grado: string;
+  montoMatricula: number;
+  montoPensionMensual: number;
+  fechaVencimiento: number;
+}
