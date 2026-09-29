@@ -1,7 +1,4 @@
-import type {
-  MovimientoFinanciero,
-  ResumenFinancieroMes,
-} from "./dashboard.types";
+import type { ResumenFinancieroMes } from "./dashboard.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -69,8 +66,9 @@ export async function obtenerResumenFinancieroMes(
   const hasta = `${anio}-${mes}-${String(ultimoDia).padStart(2, "0")}`;
 
   const parametros = new URLSearchParams({ desde, hasta });
+
   const respuesta = await fetch(
-    `${API_URL}/api/v1/movimientos-financieros?${parametros}`,
+    `${API_URL}/api/v1/reportes-financieros?${parametros}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -78,22 +76,25 @@ export async function obtenerResumenFinancieroMes(
     },
   );
 
-  if (!respuesta.ok) {
-    throw new Error("No se pudieron cargar los ingresos del mes.");
+  if (respuesta.status === 401) {
+    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
   }
 
-  const movimientos = (await respuesta.json()) as MovimientoFinanciero[];
+  if (respuesta.status === 403) {
+    throw new Error("No tienes permiso para consultar el reporte financiero.");
+  }
 
-  return movimientos.reduce<ResumenFinancieroMes>(
-    (totales, movimiento) => {
-      if (movimiento.tipo === "INGRESO") {
-        totales.ingresos += movimiento.monto;
-      } else if (movimiento.tipo === "EGRESO") {
-        totales.egresos += movimiento.monto;
-      }
+  if (!respuesta.ok) {
+    throw new Error("No se pudo cargar el resumen financiero del mes.");
+  }
 
-      return totales;
-    },
-    { ingresos: 0, egresos: 0 },
-  );
+  const reporte = (await respuesta.json()) as {
+    totalIngresos: number;
+    totalEgresos: number;
+  };
+
+  return {
+    ingresos: reporte.totalIngresos,
+    egresos: reporte.totalEgresos,
+  };
 }
