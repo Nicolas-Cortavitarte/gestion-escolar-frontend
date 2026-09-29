@@ -63,3 +63,18 @@ export interface CrearMatriculaRequest {
   montoPensionMensual: number;
   fechaVencimiento: number;
 }
+
+export interface Matricula {
+  id: string;
+  estudianteId: string;
+  anioLectivo: number;
+  nombreEstudiante: string;
+  nivel: string;
+  grado: string;
+  montoMatricula: number;
+  montoPensionMensual: number;
+  fechaVencimiento: number;
+  fechaRegistro: string;
+  matriculaPagada: boolean;
+  fechaPagoMatricula: string | null;
+}

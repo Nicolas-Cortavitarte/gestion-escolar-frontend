@@ -3,6 +3,7 @@ import type {
   InscripcionResponse,
   ApoderadoExistente,
   CrearMatriculaRequest,
+  Matricula,
 } from "./matriculas.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -94,9 +95,77 @@ export async function crearMatricula(
         mensaje = error.message;
       }
     } catch {
-      //let mensaje = "No se pudo registrar la matrícula.";
+      // Conserva el mensaje general si la respuesta no contiene JSON.
     }
 
     throw new Error(mensaje);
   }
+}
+
+export async function obtenerMatriculas(token: string): Promise<Matricula[]> {
+  const respuesta = await fetch(`${API_URL}/api/v1/matriculas`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (respuesta.status === 401) {
+    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
+  }
+
+  if (respuesta.status === 403) {
+    throw new Error("No tienes permiso para consultar matrículas.");
+  }
+
+  if (!respuesta.ok) {
+    throw new Error("No se pudo cargar la lista de matrículas.");
+  }
+
+  return (await respuesta.json()) as Matricula[];
+}
+
+export async function pagarMatricula(
+  token: string,
+  id: string,
+): Promise<Matricula> {
+  const respuesta = await fetch(
+    `${API_URL}/api/v1/matriculas/${id}/pagar-matricula`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (respuesta.status === 401) {
+    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
+  }
+
+  if (respuesta.status === 403) {
+    throw new Error("No tienes permiso para registrar pagos.");
+  }
+
+  if (!respuesta.ok) {
+    let mensaje = "No se pudo registrar el pago de matrícula.";
+
+    try {
+      const datos: unknown = await respuesta.json();
+
+      if (
+        typeof datos === "object" &&
+        datos !== null &&
+        "message" in datos &&
+        typeof datos.message === "string"
+      ) {
+        mensaje = datos.message;
+      }
+    } catch {
+      // Conserva el mensaje general si la respuesta no contiene JSON.
+    }
+
+    throw new Error(mensaje);
+  }
+
+  return (await respuesta.json()) as Matricula;
 }
