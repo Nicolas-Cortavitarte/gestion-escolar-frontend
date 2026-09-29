@@ -1,0 +1,29 @@
+.nueva-matricula {
+  width: min(100%, 960px);
+  margin-inline: auto;
+  padding: 32px 24px 64px;
+  box-sizing: border-box;
+}
+
+.nueva-matricula__encabezado {
+  margin-bottom: 28px;
+}
+
+.nueva-matricula__encabezado h1 {
+  margin: 0 0 8px;
+  color: #14233b;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.nueva-matricula__encabezado p {
+  max-width: 65ch;
+  margin: 0;
+  color: #596579;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .nueva-matricula {
+    padding: 24px 16px 48px;
+  }
+}
