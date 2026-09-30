@@ -6,6 +6,7 @@ import { AdminDashboardPage } from "../../features/dashboard/pages/AdminDashboar
 import { EstudiantesPage } from "../../features/estudiantes/pages/EstudiantesPage";
 import { NuevaMatriculaPage } from "../../features/matriculas/pages/NuevaMatriculaPage";
 import { MatriculasPage } from "../../features/matriculas/pages/MatriculasPage";
+import { PensionesPage } from "../../features/pensiones/pages/PensionesPage";
 
 interface AppRoutesProps {
   sesion: LoginResponse | null;
@@ -74,6 +75,19 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
           sesion?.rol === "ADMIN" ? (
             <AdminLayout onLogout={onLogout}>
               <MatriculasPage token={sesion.token} />
+            </AdminLayout>
+          ) : (
+            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
+          )
+        }
+      />
+
+      <Route
+        path="/admin/pensiones"
+        element={
+          sesion?.rol === "ADMIN" ? (
+            <AdminLayout onLogout={onLogout}>
+              <PensionesPage token={sesion.token} />
             </AdminLayout>
           ) : (
             <Navigate to={sesion ? rutaDelRol : "/login"} replace />
