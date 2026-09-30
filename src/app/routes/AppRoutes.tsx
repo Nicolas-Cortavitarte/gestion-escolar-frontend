@@ -7,6 +7,7 @@ import { EstudiantesPage } from "../../features/estudiantes/pages/EstudiantesPag
 import { NuevaMatriculaPage } from "../../features/matriculas/pages/NuevaMatriculaPage";
 import { MatriculasPage } from "../../features/matriculas/pages/MatriculasPage";
 import { PensionesPage } from "../../features/pensiones/pages/PensionesPage";
+import { DocentesPage } from "../../features/docentes/pages/DocentesPage";
 
 interface AppRoutesProps {
   sesion: LoginResponse | null;
@@ -88,6 +89,19 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
           sesion?.rol === "ADMIN" ? (
             <AdminLayout onLogout={onLogout}>
               <PensionesPage token={sesion.token} />
+            </AdminLayout>
+          ) : (
+            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
+          )
+        }
+      />
+
+      <Route
+        path="/admin/docentes"
+        element={
+          sesion?.rol === "ADMIN" ? (
+            <AdminLayout onLogout={onLogout}>
+              <DocentesPage token={sesion.token} />
             </AdminLayout>
           ) : (
             <Navigate to={sesion ? rutaDelRol : "/login"} replace />
