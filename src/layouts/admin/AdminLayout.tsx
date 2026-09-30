@@ -76,6 +76,13 @@ export function AdminLayout({ children, onLogout }: AdminLayoutProps) {
             Docentes
           </Link>
 
+          <Link
+            to="/admin/pagos-docentes"
+            onClick={() => setMenuAbierto(false)}
+          >
+            Pagos a docentes
+          </Link>
+
           <Link to="/admin/cursos" onClick={() => setMenuAbierto(false)}>
             Cursos
           </Link>
