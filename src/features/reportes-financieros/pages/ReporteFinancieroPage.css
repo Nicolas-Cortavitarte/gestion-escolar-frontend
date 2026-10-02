@@ -1,0 +1,216 @@
+.reporte-financiero {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  color: #14233b;
+}
+
+.reporte-financiero__encabezado h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.reporte-financiero__encabezado p {
+  margin: 0;
+  color: #596579;
+  line-height: 1.5;
+}
+
+.reporte-financiero__fechas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid #e1e6ee;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.reporte-financiero__campo {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.reporte-financiero__campo label {
+  font-weight: 600;
+}
+
+.reporte-financiero__campo input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd4e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #14233b;
+  font: inherit;
+}
+
+.reporte-financiero__campo input:focus-visible,
+.reporte-financiero__boton:focus-visible {
+  outline: 3px solid #92b7ed;
+  outline-offset: 2px;
+}
+
+.reporte-financiero__boton {
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #f97316;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reporte-financiero__boton:hover:not(:disabled) {
+  background: #c2410c;
+}
+
+.reporte-financiero__boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reporte-financiero > p {
+  margin: 0;
+  color: #596579;
+  line-height: 1.5;
+}
+
+.reporte-financiero > [role="alert"],
+.reporte-financiero > [role="status"] {
+  padding: 16px;
+  border: 1px solid #e1e6ee;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.reporte-financiero > [role="alert"] {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  overflow-wrap: anywhere;
+}
+
+.reporte-financiero__resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.reporte-financiero__resumen > div {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid #e1e6ee;
+  border-top: 4px solid #204589;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(20 35 59 / 6%);
+}
+
+.reporte-financiero__resumen span {
+  color: #596579;
+}
+
+.reporte-financiero__resumen strong {
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.reporte-financiero__balance--positivo {
+  color: #166534;
+}
+
+.reporte-financiero__balance--negativo {
+  color: #991b1b;
+}
+
+.reporte-financiero__desglose {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.reporte-financiero__tarjeta {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e1e6ee;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.reporte-financiero__tarjeta h2 {
+  margin: 0;
+  padding: 16px 24px;
+  background: #204589;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.reporte-financiero__tarjeta dl {
+  margin: 0;
+  padding: 8px 24px;
+}
+
+.reporte-financiero__tarjeta dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.reporte-financiero__tarjeta dl > div:last-child {
+  border-bottom: 0;
+}
+
+.reporte-financiero__tarjeta dt {
+  color: #596579;
+}
+
+.reporte-financiero__tarjeta dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .reporte-financiero__desglose {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .reporte-financiero__fechas,
+  .reporte-financiero__resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .reporte-financiero__fechas,
+  .reporte-financiero__resumen > div {
+    padding: 20px 16px;
+  }
+
+  .reporte-financiero__tarjeta h2 {
+    padding-inline: 16px;
+  }
+
+  .reporte-financiero__tarjeta dl {
+    padding-inline: 16px;
+  }
+
+  .reporte-financiero__tarjeta dl > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
