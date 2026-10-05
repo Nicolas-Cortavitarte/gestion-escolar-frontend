@@ -100,6 +100,10 @@ export function AdminLayout({ children, onLogout }: AdminLayoutProps) {
           >
             Reportes financieros
           </Link>
+
+          <Link to="/admin/boletas" onClick={() => setMenuAbierto(false)}>
+            Boletas
+          </Link>
         </nav>
 
         <div className="admin-layout__sidebar-account">
