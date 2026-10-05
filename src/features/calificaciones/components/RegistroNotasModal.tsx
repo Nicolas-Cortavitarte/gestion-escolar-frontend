@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { obtenerCursos } from "../../cursos/cursos.service";
 import { obtenerCompetenciasPorCurso } from "../../competencias/competencias.service";
 import type { Curso } from "../../cursos/cursos.types";
-import type { Competencia } from "../../competencias/competencias.types";
 import type { Matricula } from "../../matriculas/matriculas.types";
 import type { NotaCualitativa } from "../../boletas/boletas.types";
+import {
+  obtenerReportesConducta,
+  guardarReporteConducta,
+  obtenerEvaluacionesPadre,
+  guardarEvaluacionPadre,
+} from "../../boletas/registro-boleta.service";
 import {
   obtenerNotasPorBimestre,
   guardarNotaCompetencia,
@@ -18,7 +23,115 @@ interface RegistroNotasModalProps {
   onCerrar: (huboCambios: boolean) => void;
 }
 
-type SeleccionNota = NotaCualitativa | "";
+type Pestaña = "notas" | "conducta" | "padre";
+type Valores = Record<string, string>;
+
+interface Campo {
+  clave: string;
+  etiqueta: string;
+  tipo: "nota" | "numero" | "texto";
+}
+
+const criteriosConducta: Campo[] = [
+  {
+    clave: "conductaPuntualidadRespeto",
+    etiqueta: "Puntualidad y respeto",
+    tipo: "nota",
+  },
+  {
+    clave: "conductaActitudAula",
+    etiqueta: "Actitud en el aula",
+    tipo: "nota",
+  },
+  {
+    clave: "conductaPresentacionAseo",
+    etiqueta: "Presentación y aseo",
+    tipo: "nota",
+  },
+];
+
+const camposAsistencia: Campo[] = [
+  {
+    clave: "inasistenciasJustificadas",
+    etiqueta: "Inasistencias justificadas",
+    tipo: "numero",
+  },
+  {
+    clave: "inasistenciasInjustificadas",
+    etiqueta: "Inasistencias injustificadas",
+    tipo: "numero",
+  },
+  {
+    clave: "tardanzasJustificadas",
+    etiqueta: "Tardanzas justificadas",
+    tipo: "numero",
+  },
+  {
+    clave: "tardanzasInjustificadas",
+    etiqueta: "Tardanzas injustificadas",
+    tipo: "numero",
+  },
+];
+
+const camposConducta: Campo[] = [
+  ...criteriosConducta,
+  ...camposAsistencia,
+  {
+    clave: "apreciacionTutor",
+    etiqueta: "Apreciación del tutor",
+    tipo: "texto",
+  },
+];
+
+const camposPadre: Campo[] = [
+  {
+    clave: "enviaPuntualmenteHijo",
+    etiqueta: "Envía puntualmente a su hijo",
+    tipo: "nota",
+  },
+  {
+    clave: "apoyaTareasCasa",
+    etiqueta: "Apoya las tareas en casa",
+    tipo: "nota",
+  },
+  {
+    clave: "enviaHijoUniformado",
+    etiqueta: "Envía a su hijo uniformado",
+    tipo: "nota",
+  },
+  {
+    clave: "asisteReunionesColegio",
+    etiqueta: "Asiste a las reuniones del colegio",
+    tipo: "nota",
+  },
+  {
+    clave: "cumplePagosInstitucion",
+    etiqueta: "Cumple los pagos de la institución",
+    tipo: "nota",
+  },
+];
+
+const pestañas: { id: Pestaña; etiqueta: string }[] = [
+  { id: "notas", etiqueta: "Notas" },
+  { id: "conducta", etiqueta: "Conducta y asistencia" },
+  { id: "padre", etiqueta: "Evaluación del padre" },
+];
+
+function mensajeError(fallo: unknown): string {
+  return fallo instanceof Error
+    ? fallo.message
+    : "No se pudo completar la operación.";
+}
+
+function convertirNota(valor: string | undefined): NotaCualitativa | null {
+  if (!valor) return null;
+
+  if (valor === "AD" || valor === "A" || valor === "B" || valor === "C") {
+    return valor;
+  }
+
+  throw new Error("La calificación seleccionada no es válida.");
+}
 
 export function RegistroNotasModal({
   token,
@@ -28,32 +141,33 @@ export function RegistroNotasModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const guardandoRef = useRef(false);
   const huboCambiosRef = useRef(false);
-  const cargaRef = useRef(0);
 
+  const [pestaña, setPestaña] = useState<Pestaña>("notas");
+  const [bimestre, setBimestre] = useState<Bimestre>(1);
+  const [cursoId, setCursoId] = useState("");
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [cargandoCursos, setCargandoCursos] = useState(true);
   const [errorCursos, setErrorCursos] = useState("");
-  const [cursoId, setCursoId] = useState("");
-  const [bimestre, setBimestre] = useState<Bimestre>(1);
-  const [competencias, setCompetencias] = useState<Competencia[]>([]);
-  const [notas, setNotas] = useState<Record<string, SeleccionNota>>({});
-  const [originales, setOriginales] = useState<Record<string, SeleccionNota>>(
-    {},
-  );
-  const [cargandoNotas, setCargandoNotas] = useState(false);
-  const [guardando, setGuardando] = useState(false);
+
+  const [campos, setCampos] = useState<Campo[]>([]);
+  const [valores, setValores] = useState<Valores>({});
+  const [originales, setOriginales] = useState<Valores>({});
+  const [cargando, setCargando] = useState(false);
   const [errorCarga, setErrorCarga] = useState("");
-  const [errorGuardar, setErrorGuardar] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+
+  const hayPendientes = campos.some(
+    ({ clave }) => valores[clave] !== originales[clave],
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    dialog.showModal();
+    dialog?.showModal();
 
     return () => {
-      dialog.close();
+      dialog?.close();
     };
   }, []);
 
@@ -74,13 +188,7 @@ export function RegistroNotasModal({
         );
       })
       .catch((fallo: unknown) => {
-        if (activo) {
-          setErrorCursos(
-            fallo instanceof Error
-              ? fallo.message
-              : "No se pudieron cargar los cursos.",
-          );
-        }
+        if (activo) setErrorCursos(mensajeError(fallo));
       })
       .finally(() => {
         if (activo) setCargandoCursos(false);
@@ -88,139 +196,277 @@ export function RegistroNotasModal({
 
     return () => {
       activo = false;
-      cargaRef.current += 1;
     };
   }, [token, matricula.anioLectivo, matricula.nivel, matricula.grado]);
 
-  const hayPendientes = competencias.some(
-    (competencia) => notas[competencia.id] !== originales[competencia.id],
-  );
+  useEffect(() => {
+    let activo = true;
 
-  async function cargarSeleccion(
-    nuevoCursoId: string,
-    nuevoBimestre: Bimestre,
-  ) {
-    if (guardandoRef.current) return;
+    async function cargar() {
+      try {
+        let lista: Campo[];
+        const datos: Valores = {};
+
+        if (pestaña === "notas") {
+          if (!cursoId) return;
+
+          const [competencias, notas] = await Promise.all([
+            obtenerCompetenciasPorCurso(token, cursoId),
+            obtenerNotasPorBimestre(token, matricula.estudianteId, bimestre),
+          ]);
+
+          lista = competencias.map((competencia) => ({
+            clave: competencia.id,
+            etiqueta: competencia.nombreCompetencia,
+            tipo: "nota",
+          }));
+
+          for (const campo of lista) {
+            datos[campo.clave] =
+              notas.find((nota) => nota.competenciaId === campo.clave)
+                ?.calificativo ?? "";
+          }
+        } else if (pestaña === "conducta") {
+          const registros = await obtenerReportesConducta(
+            token,
+            matricula.estudianteId,
+            matricula.anioLectivo,
+          );
+
+          const registro = registros.find((item) => item.bimestre === bimestre);
+
+          lista = camposConducta;
+
+          datos.conductaPuntualidadRespeto =
+            registro?.conductaPuntualidadRespeto ?? "";
+          datos.conductaActitudAula = registro?.conductaActitudAula ?? "";
+          datos.conductaPresentacionAseo =
+            registro?.conductaPresentacionAseo ?? "";
+          datos.inasistenciasJustificadas = String(
+            registro?.inasistenciasJustificadas ?? 0,
+          );
+          datos.inasistenciasInjustificadas = String(
+            registro?.inasistenciasInjustificadas ?? 0,
+          );
+          datos.tardanzasJustificadas = String(
+            registro?.tardanzasJustificadas ?? 0,
+          );
+          datos.tardanzasInjustificadas = String(
+            registro?.tardanzasInjustificadas ?? 0,
+          );
+          datos.apreciacionTutor = registro?.apreciacionTutor ?? "";
+        } else {
+          const registros = await obtenerEvaluacionesPadre(
+            token,
+            matricula.estudianteId,
+            matricula.anioLectivo,
+          );
+
+          const registro = registros.find((item) => item.bimestre === bimestre);
+
+          lista = camposPadre;
+
+          datos.enviaPuntualmenteHijo = registro?.enviaPuntualmenteHijo ?? "";
+          datos.apoyaTareasCasa = registro?.apoyaTareasCasa ?? "";
+          datos.enviaHijoUniformado = registro?.enviaHijoUniformado ?? "";
+          datos.asisteReunionesColegio = registro?.asisteReunionesColegio ?? "";
+          datos.cumplePagosInstitucion = registro?.cumplePagosInstitucion ?? "";
+        }
+
+        if (!activo) return;
+
+        setCampos(lista);
+        setValores(datos);
+        setOriginales({ ...datos });
+      } catch (fallo: unknown) {
+        if (activo) setErrorCarga(mensajeError(fallo));
+      } finally {
+        if (activo) setCargando(false);
+      }
+    }
+
+    void cargar();
+
+    return () => {
+      activo = false;
+    };
+  }, [
+    token,
+    matricula.estudianteId,
+    matricula.anioLectivo,
+    pestaña,
+    bimestre,
+    cursoId,
+  ]);
+
+  function permitirCambio(): boolean {
+    if (guardandoRef.current) return false;
 
     if (hayPendientes) {
-      setErrorGuardar(
-        "Guarda o descarta los cambios antes de cambiar el curso o bimestre.",
-      );
-      return;
+      setError("Guarda o descarta los cambios pendientes antes de continuar.");
+      return false;
     }
 
-    const cargaId = ++cargaRef.current;
+    return true;
+  }
 
-    setCursoId(nuevoCursoId);
-    setBimestre(nuevoBimestre);
-    setCompetencias([]);
-    setNotas({});
+  function prepararCarga(activa: boolean) {
+    setCampos([]);
+    setValores({});
     setOriginales({});
     setErrorCarga("");
-    setErrorGuardar("");
+    setError("");
     setMensaje("");
+    setCargando(activa);
+  }
 
-    if (!nuevoCursoId) {
-      setCargandoNotas(false);
-      return;
-    }
+  function cambiarPestaña(nueva: Pestaña) {
+    if (nueva === pestaña || !permitirCambio()) return;
 
-    setCargandoNotas(true);
+    prepararCarga(nueva !== "notas" || cursoId !== "");
+    setPestaña(nueva);
+  }
 
-    try {
-      const [lista, registradas] = await Promise.all([
-        obtenerCompetenciasPorCurso(token, nuevoCursoId),
-        obtenerNotasPorBimestre(token, matricula.estudianteId, nuevoBimestre),
-      ]);
+  function cambiarBimestre(nuevo: Bimestre) {
+    if (nuevo === bimestre || !permitirCambio()) return;
 
-      if (cargaId !== cargaRef.current) return;
+    prepararCarga(pestaña !== "notas" || cursoId !== "");
+    setBimestre(nuevo);
+  }
 
-      const valores: Record<string, SeleccionNota> = {};
+  function cambiarCurso(nuevo: string) {
+    if (nuevo === cursoId || !permitirCambio()) return;
 
-      for (const competencia of lista) {
-        valores[competencia.id] =
-          registradas.find((nota) => nota.competenciaId === competencia.id)
-            ?.calificativo ?? "";
-      }
+    prepararCarga(nuevo !== "");
+    setCursoId(nuevo);
+  }
 
-      setCompetencias(lista);
-      setNotas(valores);
-      setOriginales({ ...valores });
-    } catch (fallo: unknown) {
-      if (cargaId === cargaRef.current) {
-        setErrorCarga(
-          fallo instanceof Error
-            ? fallo.message
-            : "No se pudieron cargar las notas.",
-        );
-      }
-    } finally {
-      if (cargaId === cargaRef.current) {
-        setCargandoNotas(false);
-      }
-    }
+  function cerrar() {
+    if (permitirCambio()) onCerrar(huboCambiosRef.current);
   }
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardandoRef.current) return;
 
-    const cambios = competencias.filter(
-      (competencia) => notas[competencia.id] !== originales[competencia.id],
-    );
-
-    if (cambios.length === 0) return;
+    if (guardandoRef.current || cargando || !hayPendientes) return;
 
     guardandoRef.current = true;
     setGuardando(true);
-    setErrorGuardar("");
+    setError("");
     setMensaje("");
 
-    let guardadas = 0;
+    let notasGuardadas = 0;
 
     try {
-      for (const competencia of cambios) {
-        const calificativo = notas[competencia.id];
+      if (pestaña === "notas") {
+        const cambios = campos.filter(
+          ({ clave }) => valores[clave] !== originales[clave],
+        );
 
-        if (!calificativo) {
+        if (cambios.some(({ clave }) => !valores[clave])) {
           throw new Error(
             "No se puede eliminar una nota desde este formulario.",
           );
         }
 
-        const guardada = await guardarNotaCompetencia(
-          token,
-          matricula.estudianteId,
-          {
-            competenciaId: competencia.id,
-            bimestre,
-            calificativo,
-          },
+        for (const campo of cambios) {
+          const calificativo = convertirNota(valores[campo.clave]);
+
+          if (!calificativo) {
+            throw new Error("Selecciona una calificación.");
+          }
+
+          const guardada = await guardarNotaCompetencia(
+            token,
+            matricula.estudianteId,
+            {
+              competenciaId: campo.clave,
+              bimestre,
+              calificativo,
+            },
+          );
+
+          huboCambiosRef.current = true;
+          notasGuardadas += 1;
+
+          setOriginales((actuales) => ({
+            ...actuales,
+            [campo.clave]: guardada.calificativo,
+          }));
+
+          setValores((actuales) => ({
+            ...actuales,
+            [campo.clave]: guardada.calificativo,
+          }));
+        }
+
+        setMensaje(
+          `${notasGuardadas} ${
+            notasGuardadas === 1 ? "nota guardada" : "notas guardadas"
+          } correctamente.`,
         );
+      } else if (pestaña === "conducta") {
+        const cantidadesValidas = camposAsistencia.every(({ clave }) => {
+          const texto = valores[clave] ?? "";
+          const numero = Number(texto);
+
+          return (
+            texto.trim() !== "" &&
+            Number.isSafeInteger(numero) &&
+            numero >= 0 &&
+            numero <= 2147483647
+          );
+        });
+
+        if (!cantidadesValidas) {
+          throw new Error(
+            "Las asistencias y tardanzas deben ser números enteros desde 0.",
+          );
+        }
+
+        await guardarReporteConducta(token, matricula.estudianteId, {
+          anioLectivo: matricula.anioLectivo,
+          bimestre,
+          conductaPuntualidadRespeto: convertirNota(
+            valores.conductaPuntualidadRespeto,
+          ),
+          conductaActitudAula: convertirNota(valores.conductaActitudAula),
+          conductaPresentacionAseo: convertirNota(
+            valores.conductaPresentacionAseo,
+          ),
+          inasistenciasJustificadas: Number(valores.inasistenciasJustificadas),
+          inasistenciasInjustificadas: Number(
+            valores.inasistenciasInjustificadas,
+          ),
+          tardanzasJustificadas: Number(valores.tardanzasJustificadas),
+          tardanzasInjustificadas: Number(valores.tardanzasInjustificadas),
+          apreciacionTutor: valores.apreciacionTutor?.trim() || null,
+        });
 
         huboCambiosRef.current = true;
-        guardadas += 1;
+        setOriginales({ ...valores });
+        setMensaje("Conducta y asistencia guardadas correctamente.");
+      } else {
+        await guardarEvaluacionPadre(token, matricula.estudianteId, {
+          anioLectivo: matricula.anioLectivo,
+          bimestre,
+          enviaPuntualmenteHijo: convertirNota(valores.enviaPuntualmenteHijo),
+          apoyaTareasCasa: convertirNota(valores.apoyaTareasCasa),
+          enviaHijoUniformado: convertirNota(valores.enviaHijoUniformado),
+          asisteReunionesColegio: convertirNota(valores.asisteReunionesColegio),
+          cumplePagosInstitucion: convertirNota(valores.cumplePagosInstitucion),
+        });
 
-        setOriginales((actuales) => ({
-          ...actuales,
-          [competencia.id]: guardada.calificativo,
-        }));
+        huboCambiosRef.current = true;
+        setOriginales({ ...valores });
+        setMensaje("Evaluación del padre guardada correctamente.");
       }
-
-      setMensaje(
-        `${guardadas} ${
-          guardadas === 1 ? "nota guardada" : "notas guardadas"
-        } correctamente.`,
-      );
     } catch (fallo: unknown) {
-      const detalle =
-        fallo instanceof Error
-          ? fallo.message
-          : "No se pudo completar el registro.";
+      const detalle = mensajeError(fallo);
 
-      setErrorGuardar(
-        guardadas > 0
-          ? `Se guardaron ${guardadas} notas. ${detalle} Las restantes siguen pendientes.`
+      setError(
+        notasGuardadas > 0
+          ? `Se guardaron ${notasGuardadas} notas. ${detalle} Las restantes siguen pendientes.`
           : detalle,
       );
     } finally {
@@ -229,161 +475,250 @@ export function RegistroNotasModal({
     }
   }
 
-  function cerrar() {
-    if (guardandoRef.current) return;
-
-    if (hayPendientes) {
-      setErrorGuardar(
-        "Guarda o descarta los cambios pendientes antes de cerrar.",
-      );
-      return;
-    }
-
-    onCerrar(huboCambiosRef.current);
-  }
-
   return (
     <dialog
       ref={dialogRef}
-      className="registro-notas"
-      aria-labelledby="registro-notas-titulo"
+      className="registro-evaluaciones"
+      aria-labelledby="registro-evaluaciones-titulo"
       onCancel={(evento) => {
         evento.preventDefault();
         cerrar();
       }}
     >
-      <h2 id="registro-notas-titulo">Registrar notas</h2>
+      <h2 id="registro-evaluaciones-titulo">Registrar evaluaciones</h2>
+
       <p>
-        {matricula.nombreEstudiante} — {matricula.nivel} {matricula.grado} ·{" "}
+        {matricula.nombreEstudiante} — {matricula.nivel} {matricula.grado}
+        {" · "}
         {matricula.anioLectivo}
       </p>
 
-      {cargandoCursos && <p role="status">Cargando cursos...</p>}
-      {errorCursos && <p role="alert">{errorCursos}</p>}
+      <div className="registro-evaluaciones__campo">
+        <label htmlFor="evaluaciones-bimestre">Bimestre</label>
+        <select
+          id="evaluaciones-bimestre"
+          value={bimestre}
+          disabled={guardando}
+          onChange={(evento) =>
+            cambiarBimestre(Number(evento.target.value) as Bimestre)
+          }
+        >
+          {[1, 2, 3, 4].map((valor) => (
+            <option key={valor} value={valor}>
+              Bimestre {valor}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {!cargandoCursos && !errorCursos && (
-        <>
-          <div className="registro-notas__seleccion">
-            <div className="registro-notas__campo">
-              <label htmlFor="registro-notas-curso">Curso</label>
-              <select
-                id="registro-notas-curso"
-                value={cursoId}
-                disabled={guardando}
-                onChange={(evento) =>
-                  void cargarSeleccion(evento.target.value, bimestre)
-                }
-              >
-                <option value="">Selecciona un curso</option>
-                {cursos.map((curso) => (
-                  <option key={curso.id} value={curso.id}>
-                    {curso.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <div
+        className="registro-evaluaciones__pestanas"
+        role="group"
+        aria-label="Apartados de evaluación"
+      >
+        {pestañas.map(({ id, etiqueta }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={pestaña === id}
+            aria-controls="evaluaciones-contenido"
+            disabled={guardando}
+            onClick={() => cambiarPestaña(id)}
+          >
+            {etiqueta}
+          </button>
+        ))}
+      </div>
 
-            <div className="registro-notas__campo">
-              <label htmlFor="registro-notas-bimestre">Bimestre</label>
-              <select
-                id="registro-notas-bimestre"
-                value={bimestre}
-                disabled={guardando}
-                onChange={(evento) =>
-                  void cargarSeleccion(
-                    cursoId,
-                    Number(evento.target.value) as Bimestre,
-                  )
-                }
-              >
-                {[1, 2, 3, 4].map((valor) => (
-                  <option key={valor} value={valor}>
-                    {valor}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+      <section
+        id="evaluaciones-contenido"
+        aria-label={pestañas.find((item) => item.id === pestaña)?.etiqueta}
+        aria-busy={cargando || guardando}
+      >
+        {pestaña === "notas" && (
+          <>
+            {cargandoCursos && <p role="status">Cargando cursos...</p>}
+            {errorCursos && <p role="alert">{errorCursos}</p>}
 
-          {cursos.length === 0 && (
-            <p>No hay cursos configurados para esta matrícula.</p>
-          )}
-
-          {cargandoNotas && <p role="status">Cargando notas...</p>}
-          {errorCarga && <p role="alert">{errorCarga}</p>}
-
-          {cursoId &&
-            !cargandoNotas &&
-            !errorCarga &&
-            (competencias.length === 0 ? (
-              <p>Este curso no tiene competencias registradas.</p>
-            ) : (
-              <form onSubmit={guardar} aria-busy={guardando}>
-                <div className="registro-notas__lista">
-                  {competencias.map((competencia) => (
-                    <div
-                      className="registro-notas__competencia"
-                      key={competencia.id}
-                    >
-                      <label htmlFor={`nota-${competencia.id}`}>
-                        {competencia.nombreCompetencia}
-                      </label>
-
-                      <select
-                        id={`nota-${competencia.id}`}
-                        value={notas[competencia.id] ?? ""}
-                        disabled={guardando}
-                        onChange={(evento) => {
-                          const valor = evento.target.value as SeleccionNota;
-
-                          setNotas((actuales) => ({
-                            ...actuales,
-                            [competencia.id]: valor,
-                          }));
-                          setMensaje("");
-                        }}
-                      >
-                        <option
-                          value=""
-                          disabled={originales[competencia.id] !== ""}
-                        >
-                          Sin evaluar
-                        </option>
-                        <option value="AD">AD</option>
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
-                      </select>
-                    </div>
+            {!cargandoCursos && !errorCursos && (
+              <div className="registro-evaluaciones__campo">
+                <label htmlFor="evaluaciones-curso">Curso</label>
+                <select
+                  id="evaluaciones-curso"
+                  value={cursoId}
+                  disabled={guardando}
+                  onChange={(evento) => cambiarCurso(evento.target.value)}
+                >
+                  <option value="">Selecciona un curso</option>
+                  {cursos.map((curso) => (
+                    <option key={curso.id} value={curso.id}>
+                      {curso.nombre}
+                    </option>
                   ))}
-                </div>
+                </select>
 
-                <div className="registro-notas__acciones">
+                {cursos.length === 0 && (
+                  <p>No hay cursos configurados para esta matrícula.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {cargando && <p role="status">Cargando registros...</p>}
+        {errorCarga && <p role="alert">{errorCarga}</p>}
+
+        {!cargando && !errorCarga && (
+          <>
+            {pestaña === "notas" && cursoId && campos.length === 0 && (
+              <p>Este curso no tiene competencias registradas.</p>
+            )}
+
+            {campos.length > 0 && (
+              <form onSubmit={guardar}>
+                <fieldset disabled={guardando}>
+                  <div className="registro-evaluaciones__campos">
+                    {campos.map((campo) => (
+                      <Fragment key={campo.clave}>
+                        {pestaña === "conducta" &&
+                          campo.clave === "conductaPuntualidadRespeto" && (
+                            <h3 className="registro-evaluaciones__subtitulo">
+                              Conducta del alumno
+                            </h3>
+                          )}
+
+                        {pestaña === "conducta" &&
+                          campo.clave === "inasistenciasJustificadas" && (
+                            <h3 className="registro-evaluaciones__subtitulo">
+                              Asistencia y tardanzas
+                            </h3>
+                          )}
+
+                        <div
+                          className={`registro-evaluaciones__campo ${
+                            campo.tipo === "texto"
+                              ? "registro-evaluaciones__campo--completo"
+                              : ""
+                          }`}
+                        >
+                          <label htmlFor={`evaluacion-${campo.clave}`}>
+                            {campo.etiqueta}
+                          </label>
+
+                          {campo.tipo === "nota" ? (
+                            <select
+                              id={`evaluacion-${campo.clave}`}
+                              value={valores[campo.clave] ?? ""}
+                              onChange={(evento) => {
+                                const valor = evento.target.value;
+
+                                setValores((actuales) => ({
+                                  ...actuales,
+                                  [campo.clave]: valor,
+                                }));
+                                setError("");
+                                setMensaje("");
+                              }}
+                            >
+                              <option
+                                value=""
+                                disabled={
+                                  pestaña === "notas" &&
+                                  Boolean(originales[campo.clave])
+                                }
+                              >
+                                Sin evaluar
+                              </option>
+                              {["AD", "A", "B", "C"].map((nota) => (
+                                <option key={nota} value={nota}>
+                                  {nota}
+                                </option>
+                              ))}
+                            </select>
+                          ) : campo.tipo === "numero" ? (
+                            <input
+                              id={`evaluacion-${campo.clave}`}
+                              type="number"
+                              min={0}
+                              max={2147483647}
+                              step={1}
+                              required
+                              value={valores[campo.clave] ?? "0"}
+                              onChange={(evento) => {
+                                const valor = evento.target.value;
+
+                                setValores((actuales) => ({
+                                  ...actuales,
+                                  [campo.clave]: valor,
+                                }));
+                                setError("");
+                                setMensaje("");
+                              }}
+                            />
+                          ) : (
+                            <textarea
+                              id={`evaluacion-${campo.clave}`}
+                              rows={4}
+                              maxLength={1000}
+                              value={valores[campo.clave] ?? ""}
+                              onChange={(evento) => {
+                                const valor = evento.target.value;
+
+                                setValores((actuales) => ({
+                                  ...actuales,
+                                  [campo.clave]: valor,
+                                }));
+                                setError("");
+                                setMensaje("");
+                              }}
+                            />
+                          )}
+                        </div>
+                      </Fragment>
+                    ))}
+                  </div>
+                </fieldset>
+
+                {pestaña === "conducta" && (
+                  <p>
+                    La calificación del bimestre se calcula automáticamente
+                    cuando los tres criterios de conducta están evaluados.
+                  </p>
+                )}
+
+                <div className="registro-evaluaciones__acciones">
                   <button
                     type="submit"
                     className="boletas-page__boton"
                     disabled={guardando || !hayPendientes}
                   >
-                    {guardando ? "Guardando..." : "Guardar notas"}
+                    {guardando
+                      ? "Guardando..."
+                      : pestaña === "notas"
+                        ? "Guardar notas"
+                        : pestaña === "conducta"
+                          ? "Guardar conducta y asistencia"
+                          : "Guardar evaluación del padre"}
                   </button>
                 </div>
               </form>
-            ))}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </section>
 
-      {errorGuardar && <p role="alert">{errorGuardar}</p>}
+      {error && <p role="alert">{error}</p>}
       {mensaje && <p role="status">{mensaje}</p>}
 
-      <footer className="registro-notas__acciones">
+      <footer className="registro-evaluaciones__acciones">
         {hayPendientes && (
           <button
+            className="registro-evaluaciones__boton-secundario"
             type="button"
-            className="registro-notas__boton-secundario"
             disabled={guardando}
             onClick={() => {
-              setNotas({ ...originales });
-              setErrorGuardar("");
+              setValores({ ...originales });
+              setError("");
               setMensaje("");
             }}
           >
@@ -392,8 +727,8 @@ export function RegistroNotasModal({
         )}
 
         <button
+          className="registro-evaluaciones__boton-secundario"
           type="button"
-          className="registro-notas__boton-secundario"
           disabled={guardando}
           onClick={cerrar}
         >
