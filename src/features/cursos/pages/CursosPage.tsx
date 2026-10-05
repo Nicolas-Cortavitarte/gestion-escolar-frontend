@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { obtenerCursos } from "../cursos.service";
 import type { Curso } from "../cursos.types";
 import { CursoModal } from "../components/CursoModal";
+import { CompetenciasModal } from "../../competencias/components/CompetenciasModal";
 import "./CursosPage.css";
 
 interface CursosPageProps {
@@ -19,6 +20,9 @@ export function CursosPage({ token }: CursosPageProps) {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [cursoEditando, setCursoEditando] = useState<Curso | null>(null);
   const [mensaje, setMensaje] = useState("");
+  const [cursoCompetencias, setCursoCompetencias] = useState<Curso | null>(
+    null,
+  );
 
   useEffect(() => {
     let activo = true;
@@ -216,18 +220,29 @@ export function CursosPage({ token }: CursosPageProps) {
                     )}
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className="cursos__boton-secundario"
-                      onClick={() => {
-                        setMensaje("");
-                        setCursoEditando(curso);
-                        setMostrarModal(true);
-                      }}
-                      aria-label={`Editar ${curso.nombre}, ${curso.nivel}, ${curso.grado}`}
-                    >
-                      Editar
-                    </button>
+                    <div className="cursos__acciones-fila">
+                      <button
+                        type="button"
+                        className="cursos__boton-secundario"
+                        onClick={() => {
+                          setMensaje("");
+                          setCursoEditando(curso);
+                          setMostrarModal(true);
+                        }}
+                        aria-label={`Editar ${curso.nombre}, ${curso.nivel}, ${curso.grado}`}
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        className="cursos__boton-secundario"
+                        onClick={() => setCursoCompetencias(curso)}
+                        aria-label={`Ver competencias de ${curso.nombre}, ${curso.nivel}, ${curso.grado}`}
+                      >
+                        Competencias
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -268,6 +283,14 @@ export function CursosPage({ token }: CursosPageProps) {
               } correctamente.`,
             );
           }}
+        />
+      )}
+      {cursoCompetencias && (
+        <CompetenciasModal
+          key={cursoCompetencias.id}
+          token={token}
+          curso={cursoCompetencias}
+          onCerrar={() => setCursoCompetencias(null)}
         />
       )}
     </section>
