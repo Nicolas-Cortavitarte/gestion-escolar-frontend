@@ -5,6 +5,8 @@ import type { Matricula } from "../../matriculas/matriculas.types";
 import { obtenerBoleta } from "../boletas.service";
 import type { Boleta } from "../boletas.types";
 import { BoletaVista } from "../components/BoletaVista";
+import { RegistroNotasModal } from "../../calificaciones/components/RegistroNotasModal";
+import { ConductaModal } from "../components/ConductaModal";
 import "./BoletasPage.css";
 
 interface BoletasPageProps {
@@ -21,6 +23,13 @@ export function BoletasPage({ token }: BoletasPageProps) {
   const [boleta, setBoleta] = useState<Boleta | null>(null);
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState("");
+  const [matriculaNotas, setMatriculaNotas] = useState<Matricula | null>(null);
+  const matriculaSeleccionada = matriculas.find(
+    (matricula) => matricula.id === matriculaId,
+  );
+  const [matriculaConducta, setMatriculaConducta] = useState<Matricula | null>(
+    null,
+  );
 
   const consultaRef = useRef(0);
 
@@ -121,6 +130,40 @@ export function BoletasPage({ token }: BoletasPageProps) {
     }
   }
 
+  async function cerrarRegistroNotas(
+    huboCambios: boolean,
+    seleccionada: Matricula | null = matriculaNotas,
+  ) {
+    setMatriculaNotas(null);
+
+    if (!huboCambios || !seleccionada) return;
+
+    const consultaId = ++consultaRef.current;
+    setConsultando(true);
+    setError("");
+    setBoleta(null);
+
+    try {
+      const datos = await obtenerBoleta(
+        token,
+        seleccionada.estudianteId,
+        seleccionada.anioLectivo,
+      );
+
+      if (consultaId === consultaRef.current) setBoleta(datos);
+    } catch (fallo: unknown) {
+      if (consultaId === consultaRef.current) {
+        setError(
+          fallo instanceof Error
+            ? fallo.message
+            : "Las notas se guardaron, pero no se pudo actualizar la boleta.",
+        );
+      }
+    } finally {
+      if (consultaId === consultaRef.current) setConsultando(false);
+    }
+  }
+
   return (
     <section className="boletas-page">
       <header className="boletas-page__encabezado">
@@ -199,6 +242,31 @@ export function BoletasPage({ token }: BoletasPageProps) {
             {consultando ? "Consultando..." : "Consultar boleta"}
           </button>
 
+          <button
+            type="button"
+            className="boletas-page__boton"
+            disabled={consultando || !matriculaSeleccionada}
+            onClick={() => {
+              if (matriculaSeleccionada) {
+                setMatriculaNotas(matriculaSeleccionada);
+              }
+            }}
+          >
+            Registrar notas
+          </button>
+
+          <button
+            type="button"
+            className="boletas-page__boton"
+            disabled={consultando || !matriculaSeleccionada}
+            onClick={() => {
+              if (matriculaSeleccionada) {
+                setMatriculaConducta(matriculaSeleccionada);
+              }
+            }}
+          >
+            Conducta y asistencia
+          </button>
           {opciones.length === 0 && (
             <p>No hay estudiantes que coincidan con el año y la búsqueda.</p>
           )}
@@ -222,6 +290,28 @@ export function BoletasPage({ token }: BoletasPageProps) {
 
           <BoletaVista boleta={boleta} />
         </>
+      )}
+      {matriculaNotas && (
+        <RegistroNotasModal
+          key={matriculaNotas.id}
+          token={token}
+          matricula={matriculaNotas}
+          onCerrar={(huboCambios) => {
+            void cerrarRegistroNotas(huboCambios);
+          }}
+        />
+      )}
+      {matriculaConducta && (
+        <ConductaModal
+          key={matriculaConducta.id}
+          token={token}
+          matricula={matriculaConducta}
+          onCerrar={(huboCambios) => {
+            const seleccionada = matriculaConducta;
+            setMatriculaConducta(null);
+            void cerrarRegistroNotas(huboCambios, seleccionada);
+          }}
+        />
       )}
     </section>
   );
