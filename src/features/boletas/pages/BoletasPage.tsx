@@ -6,7 +6,6 @@ import { obtenerBoleta } from "../boletas.service";
 import type { Boleta } from "../boletas.types";
 import { BoletaVista } from "../components/BoletaVista";
 import { RegistroNotasModal } from "../../calificaciones/components/RegistroNotasModal";
-import { ConductaModal } from "../components/ConductaModal";
 import "./BoletasPage.css";
 
 interface BoletasPageProps {
@@ -24,12 +23,6 @@ export function BoletasPage({ token }: BoletasPageProps) {
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState("");
   const [matriculaNotas, setMatriculaNotas] = useState<Matricula | null>(null);
-  const matriculaSeleccionada = matriculas.find(
-    (matricula) => matricula.id === matriculaId,
-  );
-  const [matriculaConducta, setMatriculaConducta] = useState<Matricula | null>(
-    null,
-  );
 
   const consultaRef = useRef(0);
 
@@ -38,19 +31,19 @@ export function BoletasPage({ token }: BoletasPageProps) {
 
     obtenerMatriculas(token)
       .then((datos) => {
-        if (activo) {
-          setMatriculas(datos);
-          setErrorMatriculas("");
-        }
+        if (!activo) return;
+
+        setMatriculas(datos);
+        setErrorMatriculas("");
       })
       .catch((fallo: unknown) => {
-        if (activo) {
-          setErrorMatriculas(
-            fallo instanceof Error
-              ? fallo.message
-              : "No se pudieron cargar los estudiantes matriculados.",
-          );
-        }
+        if (!activo) return;
+
+        setErrorMatriculas(
+          fallo instanceof Error
+            ? fallo.message
+            : "No se pudieron cargar los estudiantes matriculados.",
+        );
       })
       .finally(() => {
         if (activo) setCargandoMatriculas(false);
@@ -130,15 +123,32 @@ export function BoletasPage({ token }: BoletasPageProps) {
     }
   }
 
-  async function cerrarRegistroNotas(
-    huboCambios: boolean,
-    seleccionada: Matricula | null = matriculaNotas,
-  ) {
+  function abrirRegistroEvaluaciones() {
+    if (!boleta) return;
+
+    const seleccionada = matriculas.find(
+      (matricula) =>
+        matricula.estudianteId === boleta.estudianteId &&
+        matricula.anioLectivo === boleta.anioLectivo,
+    );
+
+    if (!seleccionada) {
+      setError("No se encontró la matrícula correspondiente a esta boleta.");
+      return;
+    }
+
+    setError("");
+    setMatriculaNotas(seleccionada);
+  }
+
+  async function cerrarRegistroNotas(huboCambios: boolean) {
+    const seleccionada = matriculaNotas;
     setMatriculaNotas(null);
 
     if (!huboCambios || !seleccionada) return;
 
     const consultaId = ++consultaRef.current;
+
     setConsultando(true);
     setError("");
     setBoleta(null);
@@ -150,17 +160,21 @@ export function BoletasPage({ token }: BoletasPageProps) {
         seleccionada.anioLectivo,
       );
 
-      if (consultaId === consultaRef.current) setBoleta(datos);
+      if (consultaId === consultaRef.current) {
+        setBoleta(datos);
+      }
     } catch (fallo: unknown) {
       if (consultaId === consultaRef.current) {
+        const detalle = fallo instanceof Error ? ` ${fallo.message}` : "";
+
         setError(
-          fallo instanceof Error
-            ? fallo.message
-            : "Las notas se guardaron, pero no se pudo actualizar la boleta.",
+          `Las evaluaciones se guardaron, pero no se pudo actualizar la boleta.${detalle}`,
         );
       }
     } finally {
-      if (consultaId === consultaRef.current) setConsultando(false);
+      if (consultaId === consultaRef.current) {
+        setConsultando(false);
+      }
     }
   }
 
@@ -242,31 +256,6 @@ export function BoletasPage({ token }: BoletasPageProps) {
             {consultando ? "Consultando..." : "Consultar boleta"}
           </button>
 
-          <button
-            type="button"
-            className="boletas-page__boton"
-            disabled={consultando || !matriculaSeleccionada}
-            onClick={() => {
-              if (matriculaSeleccionada) {
-                setMatriculaNotas(matriculaSeleccionada);
-              }
-            }}
-          >
-            Registrar notas
-          </button>
-
-          <button
-            type="button"
-            className="boletas-page__boton"
-            disabled={consultando || !matriculaSeleccionada}
-            onClick={() => {
-              if (matriculaSeleccionada) {
-                setMatriculaConducta(matriculaSeleccionada);
-              }
-            }}
-          >
-            Conducta y asistencia
-          </button>
           {opciones.length === 0 && (
             <p>No hay estudiantes que coincidan con el año y la búsqueda.</p>
           )}
@@ -282,6 +271,14 @@ export function BoletasPage({ token }: BoletasPageProps) {
             <button
               type="button"
               className="boletas-page__boton"
+              onClick={abrirRegistroEvaluaciones}
+            >
+              Registrar evaluaciones
+            </button>
+
+            <button
+              type="button"
+              className="boletas-page__boton"
               onClick={() => window.print()}
             >
               Imprimir boleta
@@ -291,6 +288,7 @@ export function BoletasPage({ token }: BoletasPageProps) {
           <BoletaVista boleta={boleta} />
         </>
       )}
+
       {matriculaNotas && (
         <RegistroNotasModal
           key={matriculaNotas.id}
@@ -298,18 +296,6 @@ export function BoletasPage({ token }: BoletasPageProps) {
           matricula={matriculaNotas}
           onCerrar={(huboCambios) => {
             void cerrarRegistroNotas(huboCambios);
-          }}
-        />
-      )}
-      {matriculaConducta && (
-        <ConductaModal
-          key={matriculaConducta.id}
-          token={token}
-          matricula={matriculaConducta}
-          onCerrar={(huboCambios) => {
-            const seleccionada = matriculaConducta;
-            setMatriculaConducta(null);
-            void cerrarRegistroNotas(huboCambios, seleccionada);
           }}
         />
       )}
