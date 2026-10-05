@@ -1,5 +1,7 @@
 import type { Boleta } from "./boletas.types";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export async function obtenerBoleta(
   token: string,
   estudianteId: string,
@@ -8,8 +10,6 @@ export async function obtenerBoleta(
   const parametros = new URLSearchParams({
     anioLectivo: String(anioLectivo),
   });
-
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const respuesta = await fetch(
     `${API_URL}/api/v1/boletas/estudiante/${estudianteId}?${parametros}`,
