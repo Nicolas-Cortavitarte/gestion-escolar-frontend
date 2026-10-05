@@ -12,6 +12,7 @@ import { PagosDocentesPage } from "../../features/pagos-docentes/pages/PagosDoce
 import { CursosPage } from "../../features/cursos/pages/CursosPage";
 import { MovimientosFinancierosPage } from "../../features/movimientos-financieros/pages/MovimientosFinancierosPage";
 import { ReporteFinancieroPage } from "../../features/reportes-financieros/pages/ReporteFinancieroPage";
+import { BoletasPage } from "../../features/boletas/pages/BoletasPage";
 
 interface AppRoutesProps {
   sesion: LoginResponse | null;
@@ -158,6 +159,19 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
           sesion?.rol === "ADMIN" ? (
             <AdminLayout onLogout={onLogout}>
               <ReporteFinancieroPage token={sesion.token} />
+            </AdminLayout>
+          ) : (
+            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
+          )
+        }
+      />
+
+      <Route
+        path="/admin/boletas"
+        element={
+          sesion?.rol === "ADMIN" ? (
+            <AdminLayout onLogout={onLogout}>
+              <BoletasPage token={sesion.token} />
             </AdminLayout>
           ) : (
             <Navigate to={sesion ? rutaDelRol : "/login"} replace />
