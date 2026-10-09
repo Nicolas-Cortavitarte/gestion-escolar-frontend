@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Outlet, Route, Routes } from "react-router";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import type { LoginResponse } from "../../features/auth/auth.types";
 import { AdminLayout } from "../../layouts/admin/AdminLayout";
@@ -13,6 +13,8 @@ import { CursosPage } from "../../features/cursos/pages/CursosPage";
 import { MovimientosFinancierosPage } from "../../features/movimientos-financieros/pages/MovimientosFinancierosPage";
 import { ReporteFinancieroPage } from "../../features/reportes-financieros/pages/ReporteFinancieroPage";
 import { BoletasPage } from "../../features/boletas/pages/BoletasPage";
+import { DocenteLayout } from "../../layouts/docente/DocenteLayout";
+import { DocenteDashboardPage } from "../../features/dashboard/pages/DocenteDashboardPage";
 
 interface AppRoutesProps {
   sesion: LoginResponse | null;
@@ -20,8 +22,31 @@ interface AppRoutesProps {
   onLogout: () => void;
 }
 
+interface RutaProtegidaProps {
+  sesion: LoginResponse | null;
+  rolPermitido: LoginResponse["rol"];
+}
+
+function obtenerRutaInicial(sesion: LoginResponse | null): string {
+  if (!sesion) return "/login";
+
+  return sesion.rol === "ADMIN" ? "/admin" : "/docente";
+}
+
+function RutaProtegida({ sesion, rolPermitido }: RutaProtegidaProps) {
+  if (!sesion) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (sesion.rol !== rolPermitido) {
+    return <Navigate to={obtenerRutaInicial(sesion)} replace />;
+  }
+
+  return <Outlet />;
+}
+
 export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
-  const rutaDelRol = sesion?.rol === "ADMIN" ? "/admin" : "/docente";
+  const rutaInicial = obtenerRutaInicial(sesion);
 
   return (
     <Routes>
@@ -29,176 +54,110 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
         path="/login"
         element={
           sesion ? (
-            <Navigate to={rutaDelRol} replace />
+            <Navigate to={rutaInicial} replace />
           ) : (
             <LoginPage onLogin={onLogin} />
           )
         }
       />
 
-      <Route
-        path="/admin"
-        element={
-          sesion?.rol === "ADMIN" ? (
+      <Route element={<RutaProtegida sesion={sesion} rolPermitido="ADMIN" />}>
+        <Route
+          path="/admin"
+          element={
             <AdminLayout onLogout={onLogout}>
-              <AdminDashboardPage token={sesion.token} />
+              <Outlet />
             </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+          }
+        >
+          {sesion?.rol === "ADMIN" && (
+            <>
+              <Route
+                index
+                element={<AdminDashboardPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/estudiantes"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <EstudiantesPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="estudiantes"
+                element={<EstudiantesPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/matriculas/nueva"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <NuevaMatriculaPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="matriculas/nueva"
+                element={<NuevaMatriculaPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/matriculas"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <MatriculasPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="matriculas"
+                element={<MatriculasPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/pensiones"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <PensionesPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="pensiones"
+                element={<PensionesPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/docentes"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <DocentesPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="docentes"
+                element={<DocentesPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/pagos-docentes"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <PagosDocentesPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="pagos-docentes"
+                element={<PagosDocentesPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/cursos"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <CursosPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="cursos"
+                element={<CursosPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/movimientos-financieros"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <MovimientosFinancierosPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="movimientos-financieros"
+                element={<MovimientosFinancierosPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/reportes-financieros"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <ReporteFinancieroPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="reportes-financieros"
+                element={<ReporteFinancieroPage token={sesion.token} />}
+              />
 
-      <Route
-        path="/admin/boletas"
-        element={
-          sesion?.rol === "ADMIN" ? (
-            <AdminLayout onLogout={onLogout}>
-              <BoletasPage token={sesion.token} />
-            </AdminLayout>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+              <Route
+                path="boletas"
+                element={<BoletasPage token={sesion.token} />}
+              />
+            </>
+          )}
 
-      <Route
-        path="/docente"
-        element={
-          sesion?.rol === "DOCENTE" ? (
-            <main>
-              <h1>Panel del docente</h1>
-              <button type="button" onClick={onLogout}>
-                Cerrar sesión
-              </button>
-            </main>
-          ) : (
-            <Navigate to={sesion ? rutaDelRol : "/login"} replace />
-          )
-        }
-      />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Route>
+      </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to={sesion ? rutaDelRol : "/login"} replace />}
-      />
+      <Route element={<RutaProtegida sesion={sesion} rolPermitido="DOCENTE" />}>
+        <Route
+          path="/docente"
+          element={
+            <DocenteLayout onLogout={onLogout}>
+              <Outlet />
+            </DocenteLayout>
+          }
+        >
+          <Route
+            index
+            element={
+              sesion?.rol === "DOCENTE" ? (
+                <DocenteDashboardPage key={sesion.token} token={sesion.token} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/docente" replace />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to={rutaInicial} replace />} />
     </Routes>
   );
 }

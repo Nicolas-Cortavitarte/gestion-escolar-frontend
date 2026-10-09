@@ -1,4 +1,4 @@
-import type { Curso, CursoRequest } from "./cursos.types";
+import type { Curso, CursoRequest, EstudianteCurso } from "./cursos.types";
 import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
@@ -79,4 +79,34 @@ export async function actualizarCurso(
   await comprobarRespuesta(respuesta);
 
   return (await respuesta.json()) as Curso;
+}
+
+export async function obtenerMisCursos(token: string): Promise<Curso[]> {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/cursos/mis-cursos`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  await comprobarRespuesta(respuesta);
+
+  return (await respuesta.json()) as Curso[];
+}
+
+export async function obtenerEstudiantesPorCurso(
+  token: string,
+  cursoId: string,
+): Promise<EstudianteCurso[]> {
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/cursos/${encodeURIComponent(cursoId)}/estudiantes`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  await comprobarRespuesta(respuesta);
+
+  return (await respuesta.json()) as EstudianteCurso[];
 }
