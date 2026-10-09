@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { DocenteForm } from "./DocenteForm";
 import type { Docente } from "../docentes.types";
 
@@ -16,38 +16,52 @@ export function DocenteModal({
   onCerrar,
 }: DocenteModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const guardandoRef = useRef(false);
+  const tituloId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
+    const elementoAnterior = document.activeElement;
 
-    dialog.showModal();
+    if (dialog && !dialog.open) dialog.showModal();
 
     return () => {
-      dialog.close();
+      dialog?.close();
+
+      if (
+        elementoAnterior instanceof HTMLElement &&
+        elementoAnterior.isConnected
+      ) {
+        elementoAnterior.focus();
+      } else {
+        document.getElementById("docentes-busqueda")?.focus();
+      }
     };
   }, []);
+
+  function cerrar() {
+    if (!guardandoRef.current) onCerrar();
+  }
 
   return (
     <dialog
       ref={dialogRef}
       className="docentes__modal"
-      aria-labelledby="docente-form-titulo"
+      aria-labelledby={tituloId}
       onCancel={(evento) => {
         evento.preventDefault();
-
-        if (dialogRef.current?.querySelector('[aria-busy="true"]')) {
-          return;
-        }
-
-        onCerrar();
+        cerrar();
       }}
     >
       <DocenteForm
         token={token}
         docente={docente}
+        tituloId={tituloId}
         onGuardado={onGuardado}
-        onCancelar={onCerrar}
+        onCancelar={cerrar}
+        onGuardando={(valor) => {
+          guardandoRef.current = valor;
+        }}
       />
     </dialog>
   );

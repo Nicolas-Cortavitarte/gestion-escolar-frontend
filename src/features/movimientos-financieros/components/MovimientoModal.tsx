@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { crearMovimiento } from "../movimientos-financieros.service";
 import type {
@@ -6,6 +6,9 @@ import type {
   MovimientoFinanciero,
   TipoMovimiento,
 } from "../movimientos-financieros.types";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { useValidacion } from "../../../shared/hooks/useValidacion";
 
 interface MovimientoModalProps {
   token: string;
@@ -42,6 +45,9 @@ export function MovimientoModal({
   onCerrar,
 }: MovimientoModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const guardandoRef = useRef(false);
+  const id = useId();
+
   const [tipo, setTipo] = useState<TipoMovimiento>("EGRESO");
   const [categoria, setCategoria] = useState<CategoriaMovimiento>("OTRO");
   const [concepto, setConcepto] = useState("");
@@ -51,47 +57,74 @@ export function MovimientoModal({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
+  const { errores, eventos, validar } = useValidacion();
+
+  const conceptoId = `${id}-concepto`;
+  const montoId = `${id}-monto`;
+  const fechaId = `${id}-fecha`;
+  const descripcionId = `${id}-descripcion`;
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    dialog.showModal();
+    const elementoAnterior =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    if (!dialog.open) dialog.showModal();
 
     return () => {
       dialog.close();
+
+      if (elementoAnterior?.isConnected) {
+        elementoAnterior.focus();
+      }
     };
   }, []);
 
+  function cerrar() {
+    if (!guardandoRef.current) onCerrar();
+  }
+
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando) return;
+    if (guardandoRef.current) return;
 
     setError("");
 
-    const importe = Number(monto);
+    const formulario = evento.currentTarget;
 
-    if (!concepto.trim()) {
-      setError("Ingresa el concepto del movimiento.");
+    if (!validar(formulario)) return;
+    if (!formulario.reportValidity()) return;
+
+    const importe = Number(monto);
+    const conceptoLimpio = concepto.trim();
+
+    if (!conceptoLimpio || conceptoLimpio.length > 255) {
+      setError("El concepto debe tener entre 1 y 255 caracteres.");
       return;
     }
 
     if (!Number.isFinite(importe) || importe <= 0) {
-      setError("El monto debe ser mayor a cero.");
+      setError("Ingresa un monto mayor a cero.");
       return;
     }
 
-    if (!fecha) {
-      setError("Selecciona la fecha del movimiento.");
+    if (descripcion.trim().length > 1000) {
+      setError("La descripción no puede superar los 1000 caracteres.");
       return;
     }
 
+    guardandoRef.current = true;
     setGuardando(true);
 
     try {
       const creado = await crearMovimiento(token, {
         tipo,
         categoria,
-        concepto: concepto.trim(),
+        concepto: conceptoLimpio,
         monto: importe,
         fecha,
         descripcion: descripcion.trim() || null,
@@ -102,9 +135,10 @@ export function MovimientoModal({
       setError(
         fallo instanceof Error
           ? fallo.message
-          : "No se pudo registrar el movimiento.",
+          : "No se pudo registrar el movimiento. Inténtalo nuevamente.",
       );
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
     }
   }
@@ -113,20 +147,24 @@ export function MovimientoModal({
     <dialog
       ref={dialogRef}
       className="movimientos__modal"
-      aria-labelledby="movimiento-modal-titulo"
+      aria-labelledby={`${id}-titulo`}
+      aria-describedby={`${id}-descripcion-modal`}
       onCancel={(evento) => {
         evento.preventDefault();
-        if (!guardando) onCerrar();
+        cerrar();
       }}
     >
       <form
         className="movimientos__formulario"
         onSubmit={guardar}
+        onChange={() => setError("")}
         aria-busy={guardando}
+        noValidate
+        {...eventos}
       >
-        <h2 id="movimiento-modal-titulo">Registrar movimiento</h2>
+        <h2 id={`${id}-titulo`}>Registrar movimiento</h2>
 
-        <p>
+        <p id={`${id}-descripcion-modal`}>
           Registra operaciones adicionales. Los pagos de matrículas, pensiones y
           docentes se registran en sus respectivos apartados.
         </p>
@@ -135,28 +173,39 @@ export function MovimientoModal({
           <legend>Datos del movimiento</legend>
 
           <div className="movimientos__form-grid">
-            <div className="movimientos__campo">
-              <label htmlFor="movimiento-tipo">Tipo</label>
+            <div className="campo">
+              <label htmlFor={`${id}-tipo`}>Tipo de movimiento</label>
+
               <select
-                id="movimiento-tipo"
+                id={`${id}-tipo`}
+                className="campo__entrada"
                 value={tipo}
                 onChange={(evento) =>
                   setTipo(evento.target.value as TipoMovimiento)
                 }
+                aria-describedby={`${id}-tipo-ayuda`}
+                required
               >
                 <option value="EGRESO">Egreso</option>
                 <option value="INGRESO">Ingreso</option>
               </select>
+
+              <p id={`${id}-tipo-ayuda`} className="campo__ayuda">
+                Ingreso: dinero recibido. Egreso: dinero gastado.
+              </p>
             </div>
 
-            <div className="movimientos__campo">
-              <label htmlFor="movimiento-categoria">Categoría</label>
+            <div className="campo">
+              <label htmlFor={`${id}-categoria`}>Categoría</label>
+
               <select
-                id="movimiento-categoria"
+                id={`${id}-categoria`}
+                className="campo__entrada"
                 value={categoria}
                 onChange={(evento) =>
                   setCategoria(evento.target.value as CategoriaMovimiento)
                 }
+                required
               >
                 {Object.entries(categorias).map(([valor, nombre]) => (
                   <option key={valor} value={valor}>
@@ -166,54 +215,58 @@ export function MovimientoModal({
               </select>
             </div>
 
-            <div className="movimientos__campo movimientos__campo--completo">
-              <label htmlFor="movimiento-concepto">Concepto</label>
-              <input
-                id="movimiento-concepto"
+            <div className="movimientos__campo--completo">
+              <CampoEntrada
+                id={conceptoId}
+                etiqueta="Concepto"
                 value={concepto}
                 onChange={(evento) => setConcepto(evento.target.value)}
                 maxLength={255}
                 placeholder="Ej.: Compra de materiales de limpieza"
+                error={errores[conceptoId]}
                 autoFocus
                 required
               />
             </div>
 
-            <div className="movimientos__campo">
-              <label htmlFor="movimiento-monto">Monto (S/)</label>
-              <input
-                id="movimiento-monto"
-                type="number"
-                value={monto}
-                onChange={(evento) => setMonto(evento.target.value)}
-                min="0.01"
-                step="0.01"
-                required
-              />
-            </div>
+            <CampoEntrada
+              id={montoId}
+              etiqueta="Monto (S/)"
+              type="number"
+              inputMode="decimal"
+              value={monto}
+              onChange={(evento) => setMonto(evento.target.value)}
+              min={0.01}
+              step={0.01}
+              error={errores[montoId]}
+              required
+            />
 
-            <div className="movimientos__campo">
-              <label htmlFor="movimiento-fecha">Fecha</label>
-              <input
-                id="movimiento-fecha"
-                type="date"
-                value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
-                required
-              />
-            </div>
+            <CampoEntrada
+              id={fechaId}
+              etiqueta="Fecha del movimiento"
+              type="date"
+              value={fecha}
+              onChange={(evento) => setFecha(evento.target.value)}
+              error={errores[fechaId]}
+              required
+            />
 
             <div className="movimientos__campo movimientos__campo--completo">
-              <label htmlFor="movimiento-descripcion">
-                Descripción (opcional)
-              </label>
+              <label htmlFor={descripcionId}>Descripción (opcional)</label>
+
               <textarea
-                id="movimiento-descripcion"
+                id={descripcionId}
                 value={descripcion}
                 onChange={(evento) => setDescripcion(evento.target.value)}
                 maxLength={1000}
                 rows={3}
+                aria-describedby={`${descripcionId}-ayuda`}
               />
+
+              <p id={`${descripcionId}-ayuda`} className="campo__ayuda">
+                Agrega detalles si son necesarios. Máximo 1000 caracteres.
+              </p>
             </div>
           </div>
         </fieldset>
@@ -221,22 +274,18 @@ export function MovimientoModal({
         {error && <p role="alert">{error}</p>}
 
         <div className="movimientos__acciones">
-          <button
-            type="button"
-            className="movimientos__boton-secundario"
-            onClick={onCerrar}
-            disabled={guardando}
-          >
+          <Boton onClick={cerrar} disabled={guardando}>
             Cancelar
-          </button>
+          </Boton>
 
-          <button
+          <Boton
             type="submit"
-            className="movimientos__boton"
-            disabled={guardando}
+            variante="principal"
+            cargando={guardando}
+            textoCargando="Guardando..."
           >
-            {guardando ? "Guardando..." : "Registrar movimiento"}
-          </button>
+            Registrar movimiento
+          </Boton>
         </div>
       </form>
     </dialog>

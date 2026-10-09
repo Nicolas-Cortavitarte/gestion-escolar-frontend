@@ -1,0 +1,29 @@
+.badge-estado {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--espacio-1) var(--espacio-3);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: var(--texto-pequeno);
+  font-weight: 600;
+}
+
+.badge-estado--exito {
+  color: var(--verde-base);
+  background: var(--verde-claro);
+}
+
+.badge-estado--error {
+  color: var(--rojo-base);
+  background: var(--rojo-claro);
+}
+
+.badge-estado--pendiente {
+  color: var(--azul-base);
+  background: var(--azul-claro);
+}
+
+.badge-estado--neutro {
+  color: var(--color-texto-secundario);
+  background: var(--color-deshabilitado-fondo);
+}

@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { obtenerReporteFinanciero } from "../reportes-financieros.service";
 import type { ReporteFinanciero } from "../reportes-financieros.types";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { TarjetaResumen } from "../../../shared/components/TarjetaResumen";
+import { ComparacionFinanciera } from "../../dashboard/components/ComparacionFinanciera";
+import "../../../styles/listados.css";
 import "./ReporteFinancieroPage.css";
 
 interface ReporteFinancieroPageProps {
@@ -40,8 +45,12 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
   const [hasta, setHasta] = useState(rango.hasta);
   const [reporte, setReporte] = useState<ReporteFinanciero | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [intentoCarga, setIntentoCarga] = useState(0);
   const [error, setError] = useState("");
   const [errorFechas, setErrorFechas] = useState("");
+  const [seleccion, setSeleccion] = useState<"ingresos" | "egresos">(
+    "ingresos",
+  );
 
   useEffect(() => {
     let activo = true;
@@ -69,70 +78,123 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
     return () => {
       activo = false;
     };
-  }, [token, rango]);
+  }, [token, rango, intentoCarga]);
 
   function consultar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (cargando) return;
 
     if (!desde || !hasta || desde > hasta) {
-      setErrorFechas("La fecha inicial debe ser anterior o igual a la final.");
+      setErrorFechas(
+        "Selecciona ambas fechas. Desde debe ser anterior o igual a Hasta.",
+      );
       return;
     }
+
+    if (!evento.currentTarget.reportValidity()) return;
 
     setErrorFechas("");
     setError("");
     setReporte(null);
     setCargando(true);
+    setSeleccion("ingresos");
     setRango({ desde, hasta });
   }
+
+  function reintentar() {
+    setError("");
+    setReporte(null);
+    setCargando(true);
+    setIntentoCarga((actual) => actual + 1);
+  }
+
+  const desglose = reporte
+    ? seleccion === "ingresos"
+      ? [
+          {
+            etiqueta: "Pensiones pagadas",
+            monto: reporte.totalIngresosPensiones,
+          },
+          {
+            etiqueta: "Matrículas pagadas",
+            monto: reporte.totalIngresosMatriculas,
+          },
+          {
+            etiqueta: "Otros ingresos",
+            monto: reporte.totalIngresosMovimientos,
+          },
+        ]
+      : [
+          {
+            etiqueta: "Pagos a docentes",
+            monto: reporte.totalEgresosPagosDocentes,
+          },
+          {
+            etiqueta: "Otros egresos",
+            monto: reporte.totalEgresosMovimientos,
+          },
+        ]
+    : [];
 
   return (
     <section className="reporte-financiero">
       <header className="reporte-financiero__encabezado">
         <h1>Reporte financiero</h1>
-        <p>Consulta los ingresos, egresos y balance general del colegio.</p>
+        <p>
+          Consulta los ingresos, egresos y balance del periodo seleccionado.
+        </p>
       </header>
 
-      <form className="reporte-financiero__fechas" onSubmit={consultar}>
-        <div className="reporte-financiero__campo">
-          <label htmlFor="reporte-desde">Desde</label>
-          <input
-            id="reporte-desde"
-            type="date"
-            value={desde}
-            onChange={(evento) => setDesde(evento.target.value)}
-            required
-          />
-        </div>
-
-        <div className="reporte-financiero__campo">
-          <label htmlFor="reporte-hasta">Hasta</label>
-          <input
-            id="reporte-hasta"
-            type="date"
-            value={hasta}
-            onChange={(evento) => setHasta(evento.target.value)}
-            min={desde || undefined}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="reporte-financiero__boton"
+      <form
+        className="reporte-financiero__fechas"
+        onSubmit={consultar}
+        noValidate
+      >
+        <CampoEntrada
+          id="reporte-desde"
+          etiqueta="Desde"
+          type="date"
+          value={desde}
+          onChange={(evento) => {
+            setDesde(evento.target.value);
+            setErrorFechas("");
+          }}
           disabled={cargando}
-        >
-          {cargando ? "Consultando..." : "Consultar"}
-        </button>
+          required
+        />
+
+        <CampoEntrada
+          id="reporte-hasta"
+          etiqueta="Hasta"
+          type="date"
+          value={hasta}
+          onChange={(evento) => {
+            setHasta(evento.target.value);
+            setErrorFechas("");
+          }}
+          min={desde || undefined}
+          error={errorFechas}
+          disabled={cargando}
+          required
+        />
+
+        <Boton type="submit" variante="principal" disabled={cargando}>
+          {cargando ? "Consultando..." : "Consultar reporte"}
+        </Boton>
       </form>
 
-      {errorFechas && <p role="alert">{errorFechas}</p>}
       {cargando && <p role="status">Cargando reporte financiero...</p>}
-      {error && <p role="alert">{error}</p>}
+
+      {!cargando && error && (
+        <div className="estado-listado">
+          <p role="alert">{error}</p>
+          <Boton onClick={reintentar}>Reintentar</Boton>
+        </div>
+      )}
 
       {!cargando && !error && reporte && (
         <>
-          <p>
+          <p className="reporte-financiero__periodo">
             Periodo consultado:{" "}
             <strong>
               {mostrarFecha(reporte.fechaInicio)} al{" "}
@@ -141,67 +203,70 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
           </p>
 
           <div className="reporte-financiero__resumen">
-            <div>
-              <span>Total de ingresos</span>
-              <strong>{moneda.format(reporte.totalIngresos)}</strong>
-            </div>
+            <TarjetaResumen
+              titulo="Total de ingresos"
+              valor={moneda.format(reporte.totalIngresos)}
+            />
 
-            <div>
-              <span>Total de egresos</span>
-              <strong>{moneda.format(reporte.totalEgresos)}</strong>
-            </div>
+            <TarjetaResumen
+              titulo="Total de egresos"
+              valor={moneda.format(reporte.totalEgresos)}
+            />
 
-            <div>
-              <span>Balance del periodo</span>
-              <strong
-                className={
-                  reporte.balance < 0
-                    ? "reporte-financiero__balance--negativo"
-                    : "reporte-financiero__balance--positivo"
-                }
-              >
-                {moneda.format(reporte.balance)}
-              </strong>
-            </div>
+            <TarjetaResumen
+              titulo="Balance del periodo"
+              valor={moneda.format(reporte.balance)}
+            />
           </div>
 
-          <div className="reporte-financiero__desglose">
-            <section className="reporte-financiero__tarjeta">
-              <h2>Ingresos</h2>
-              <dl>
-                <div>
-                  <dt>Pensiones pagadas</dt>
-                  <dd>{moneda.format(reporte.totalIngresosPensiones)}</dd>
-                </div>
-                <div>
-                  <dt>Matrículas pagadas</dt>
-                  <dd>{moneda.format(reporte.totalIngresosMatriculas)}</dd>
-                </div>
-                <div>
-                  <dt>Movimientos adicionales</dt>
-                  <dd>{moneda.format(reporte.totalIngresosMovimientos)}</dd>
-                </div>
-              </dl>
-            </section>
+          <p className="reporte-financiero__explicacion">
+            {reporte.balance > 0
+              ? "Los ingresos superaron a los egresos en este periodo."
+              : reporte.balance < 0
+                ? "Los egresos superaron a los ingresos en este periodo."
+                : "Los ingresos y los egresos son iguales en este periodo."}
+          </p>
 
-            <section className="reporte-financiero__tarjeta">
-              <h2>Egresos</h2>
-              <dl>
-                <div>
-                  <dt>Pagos a docentes</dt>
-                  <dd>{moneda.format(reporte.totalEgresosPagosDocentes)}</dd>
-                </div>
-                <div>
-                  <dt>Movimientos adicionales</dt>
-                  <dd>{moneda.format(reporte.totalEgresosMovimientos)}</dd>
-                </div>
-              </dl>
-            </section>
-          </div>
+          <ComparacionFinanciera
+            resumen={{
+              ingresos: reporte.totalIngresos,
+              egresos: reporte.totalEgresos,
+            }}
+            descripcion="Comparación del periodo consultado"
+            seleccion={seleccion}
+            onSeleccionar={setSeleccion}
+          />
 
-          <p>
+          <section
+            className="reporte-financiero__tarjeta"
+            aria-labelledby="reporte-desglose-titulo"
+          >
+            <h2 id="reporte-desglose-titulo">Desglose de {seleccion}</h2>
+
+            <dl>
+              {desglose.map((fila) => (
+                <div key={fila.etiqueta}>
+                  <dt>{fila.etiqueta}</dt>
+                  <dd>{moneda.format(fila.monto)}</dd>
+                </div>
+              ))}
+
+              <div className="reporte-financiero__total">
+                <dt>Total de {seleccion}</dt>
+                <dd>
+                  {moneda.format(
+                    seleccion === "ingresos"
+                      ? reporte.totalIngresos
+                      : reporte.totalEgresos,
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <p className="reporte-financiero__nota">
             Los pagos se incluyen por su fecha de pago y los movimientos
-            adicionales por su fecha registrada. El balance corresponde
+            adicionales por su fecha del movimiento. El balance corresponde
             únicamente al periodo consultado.
           </p>
         </>

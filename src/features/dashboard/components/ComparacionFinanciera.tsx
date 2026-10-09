@@ -1,50 +1,101 @@
-import type { ResumenFinancieroMes } from '../dashboard.types'
-import './ComparacionFinanciera.css'
+import { useId } from "react";
+import type { ResumenFinancieroMes } from "../dashboard.types";
+import "./ComparacionFinanciera.css";
 
 interface ComparacionFinancieraProps {
-  resumen: ResumenFinancieroMes
+  resumen: ResumenFinancieroMes;
+  descripcion?: string;
+  seleccion?: "ingresos" | "egresos";
+  onSeleccionar?: (tipo: "ingresos" | "egresos") => void;
 }
 
-const formatoSoles = new Intl.NumberFormat('es-PE', {
-  style: 'currency',
-  currency: 'PEN',
-})
+const formatoSoles = new Intl.NumberFormat("es-PE", {
+  style: "currency",
+  currency: "PEN",
+});
 
-export function ComparacionFinanciera({ resumen }: ComparacionFinancieraProps) {
-  const mayorMonto = Math.max(resumen.ingresos, resumen.egresos)
+export function ComparacionFinanciera({
+  resumen,
+  descripcion = "Resumen del mes actual",
+  seleccion,
+  onSeleccionar,
+}: ComparacionFinancieraProps) {
+  const id = useId();
+  const mayorMonto = Math.max(resumen.ingresos, resumen.egresos, 0);
 
-  const porcentajeIngresos =
-    mayorMonto === 0 ? 0 : (resumen.ingresos / mayorMonto) * 100
-
-  const porcentajeEgresos =
-    mayorMonto === 0 ? 0 : (resumen.egresos / mayorMonto) * 100
+  const filas = [
+    {
+      clave: "ingresos",
+      etiqueta: "Ingresos",
+      monto: resumen.ingresos,
+    },
+    {
+      clave: "egresos",
+      etiqueta: "Egresos",
+      monto: resumen.egresos,
+    },
+  ] as const;
 
   return (
-    <section className="comparacion-financiera" aria-labelledby="comparacion-titulo">
-      <h2 id="comparacion-titulo">Ingresos vs. egresos</h2>
-      <p>Resumen del mes actual</p>
+    <section
+      className="comparacion-financiera"
+      aria-labelledby={`${id}-titulo`}
+    >
+      <h2 id={`${id}-titulo`}>Ingresos y egresos</h2>
+      <p>{descripcion}</p>
 
-      <div className="comparacion-financiera__fila">
-        <span>Ingresos</span>
-        <div className="comparacion-financiera__pista">
-          <div
-            className="comparacion-financiera__barra comparacion-financiera__barra--ingresos"
-            style={{ width: `${porcentajeIngresos}%` }}
-          />
-        </div>
-        <strong>{formatoSoles.format(resumen.ingresos)}</strong>
+      {onSeleccionar && (
+        <p className="comparacion-financiera__ayuda">
+          Selecciona Ingresos o Egresos para consultar su desglose.
+        </p>
+      )}
+
+      <div className="comparacion-financiera__filas">
+        {filas.map((fila) => {
+          const porcentaje =
+            mayorMonto === 0 ? 0 : (fila.monto / mayorMonto) * 100;
+
+          const contenido = (
+            <>
+              <span>{fila.etiqueta}</span>
+
+              <strong>{formatoSoles.format(fila.monto)}</strong>
+
+              <span
+                className="comparacion-financiera__pista"
+                aria-hidden="true"
+              >
+                <span
+                  className={`comparacion-financiera__barra comparacion-financiera__barra--${fila.clave}`}
+                  style={{ width: `${porcentaje}%` }}
+                />
+              </span>
+            </>
+          );
+
+          return onSeleccionar ? (
+            <button
+              key={fila.clave}
+              type="button"
+              className="comparacion-financiera__fila comparacion-financiera__fila--interactiva"
+              aria-pressed={seleccion === fila.clave}
+              onClick={() => onSeleccionar(fila.clave)}
+            >
+              {contenido}
+            </button>
+          ) : (
+            <div key={fila.clave} className="comparacion-financiera__fila">
+              {contenido}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="comparacion-financiera__fila">
-        <span>Egresos</span>
-        <div className="comparacion-financiera__pista">
-          <div
-            className="comparacion-financiera__barra comparacion-financiera__barra--egresos"
-            style={{ width: `${porcentajeEgresos}%` }}
-          />
-        </div>
-        <strong>{formatoSoles.format(resumen.egresos)}</strong>
-      </div>
+      {mayorMonto === 0 && (
+        <p className="comparacion-financiera__vacio">
+          No se registraron ingresos ni egresos en este periodo.
+        </p>
+      )}
     </section>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
   obtenerCompetenciasPorCurso,
@@ -7,6 +7,7 @@ import {
 } from "../competencias.service";
 import type { Competencia } from "../competencias.types";
 import type { Curso } from "../../cursos/cursos.types";
+import { Boton } from "../../../shared/components/Boton";
 
 interface CompetenciasModalProps {
   token: string;
@@ -20,26 +21,41 @@ export function CompetenciasModal({
   onCerrar,
 }: CompetenciasModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const guardandoRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const guardandoRef = useRef(false);
+  const campoRevisadoRef = useRef(false);
+  const id = useId();
 
   const [competencias, setCompetencias] = useState<Competencia[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [intentoCarga, setIntentoCarga] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [errorCarga, setErrorCarga] = useState("");
+  const [errorCampo, setErrorCampo] = useState("");
   const [errorFormulario, setErrorFormulario] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [nombre, setNombre] = useState("");
   const [editando, setEditando] = useState<Competencia | null>(null);
 
+  const nombreId = `${id}-nombre`;
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    dialog.showModal();
+    const elementoAnterior =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    if (!dialog.open) dialog.showModal();
 
     return () => {
       dialog.close();
+
+      if (elementoAnterior?.isConnected) {
+        elementoAnterior.focus();
+      }
     };
   }, []);
 
@@ -69,41 +85,81 @@ export function CompetenciasModal({
     return () => {
       activo = false;
     };
-  }, [token, curso.id]);
+  }, [token, curso.id, intentoCarga]);
 
-  function cancelarEdicion() {
-    setEditando(null);
-    setNombre("");
-    setErrorFormulario("");
-    setMensaje("");
-    inputRef.current?.focus();
+  function cerrar() {
+    if (!guardandoRef.current) onCerrar();
   }
 
-  async function guardar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    if (guardandoRef.current) return;
+  function reintentarCarga() {
+    setCargando(true);
+    setErrorCarga("");
+    setIntentoCarga((actual) => actual + 1);
+  }
 
-    setErrorFormulario("");
-    setMensaje("");
+  function validarNombre(valor: string) {
+    const limpio = valor.trim();
 
-    const nombreLimpio = nombre.trim();
+    if (!limpio) {
+      return "Escribe el nombre de la competencia.";
+    }
 
-    if (!nombreLimpio || nombreLimpio.length > 500) {
-      setErrorFormulario("La competencia debe tener entre 1 y 500 caracteres.");
-      return;
+    if (limpio.length > 500) {
+      return "El nombre no puede superar los 500 caracteres.";
     }
 
     const existe = competencias.some(
       (competencia) =>
         competencia.id !== editando?.id &&
         competencia.nombreCompetencia.trim().toLocaleLowerCase("es") ===
-          nombreLimpio.toLocaleLowerCase("es"),
+          limpio.toLocaleLowerCase("es"),
     );
 
-    if (existe) {
-      setErrorFormulario("Ya existe una competencia con ese nombre.");
+    return existe ? "Ya existe una competencia con ese nombre." : "";
+  }
+
+  function iniciarEdicion(competencia: Competencia) {
+    if (guardandoRef.current) return;
+
+    setEditando(competencia);
+    setNombre(competencia.nombreCompetencia);
+    setErrorCampo("");
+    setErrorFormulario("");
+    setMensaje("");
+    campoRevisadoRef.current = false;
+    inputRef.current?.focus();
+  }
+
+  function cancelarEdicion() {
+    if (guardandoRef.current) return;
+
+    setEditando(null);
+    setNombre("");
+    setErrorCampo("");
+    setErrorFormulario("");
+    setMensaje("");
+    campoRevisadoRef.current = false;
+    inputRef.current?.focus();
+  }
+
+  async function guardar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+
+    if (guardandoRef.current || cargando || errorCarga) return;
+
+    setErrorFormulario("");
+    setMensaje("");
+    campoRevisadoRef.current = true;
+
+    const errorValidacion = validarNombre(nombre);
+    setErrorCampo(errorValidacion);
+
+    if (errorValidacion) {
+      inputRef.current?.focus();
       return;
     }
+
+    const competenciaEditada = editando;
 
     guardandoRef.current = true;
     setGuardando(true);
@@ -111,31 +167,34 @@ export function CompetenciasModal({
     try {
       const datos = {
         cursoId: curso.id,
-        nombreCompetencia: nombreLimpio,
+        nombreCompetencia: nombre.trim(),
       };
 
-      const guardada = editando
-        ? await actualizarCompetencia(token, editando.id, datos)
+      const guardada = competenciaEditada
+        ? await actualizarCompetencia(token, competenciaEditada.id, datos)
         : await crearCompetencia(token, datos);
 
       setCompetencias((actuales) =>
-        editando
+        competenciaEditada
           ? actuales.map((item) => (item.id === guardada.id ? guardada : item))
           : [...actuales, guardada],
       );
 
       setMensaje(
-        editando
+        competenciaEditada
           ? "Competencia actualizada correctamente."
           : "Competencia registrada correctamente.",
       );
+
       setEditando(null);
       setNombre("");
+      setErrorCampo("");
+      campoRevisadoRef.current = false;
     } catch (fallo: unknown) {
       setErrorFormulario(
         fallo instanceof Error
           ? fallo.message
-          : "No se pudo guardar la competencia.",
+          : "No se pudo guardar la competencia. Inténtalo nuevamente.",
       );
     } finally {
       guardandoRef.current = false;
@@ -147,46 +206,61 @@ export function CompetenciasModal({
     <dialog
       ref={dialogRef}
       className="competencias-modal"
-      aria-labelledby="competencias-titulo"
+      aria-labelledby={`${id}-titulo`}
+      aria-describedby={`${id}-descripcion`}
       onCancel={(evento) => {
         evento.preventDefault();
-        if (!guardandoRef.current) onCerrar();
+        cerrar();
       }}
     >
       <header className="competencias-modal__encabezado">
-        <h2 id="competencias-titulo">Competencias de {curso.nombre}</h2>
-        <p>
-          {curso.nivel} · {curso.grado} · {curso.anioLectivo}
+        <h2 id={`${id}-titulo`}>Competencias de {curso.nombre}</h2>
+
+        <p id={`${id}-descripcion`}>
+          {curso.nivel === "INICIAL"
+            ? "Inicial"
+            : curso.nivel === "PRIMARIA"
+              ? "Primaria"
+              : curso.nivel}
+          {" · "}
+          {curso.grado}
+          {" · "}
+          {curso.anioLectivo}
         </p>
       </header>
 
       {cargando && <p role="status">Cargando competencias...</p>}
-      {errorCarga && <p role="alert">{errorCarga}</p>}
+
+      {errorCarga && (
+        <div className="estado-listado">
+          <p role="alert">{errorCarga}</p>
+
+          <Boton onClick={reintentarCarga} disabled={cargando}>
+            Reintentar
+          </Boton>
+        </div>
+      )}
 
       {!cargando && !errorCarga && (
         <>
           {competencias.length === 0 ? (
-            <p>Este curso todavía no tiene competencias registradas.</p>
+            <p>
+              Este curso todavía no tiene competencias. Registra la primera en
+              el formulario.
+            </p>
           ) : (
             <ul className="competencias-modal__lista">
               {competencias.map((competencia) => (
                 <li key={competencia.id}>
                   <span>{competencia.nombreCompetencia}</span>
-                  <button
-                    type="button"
-                    className="cursos__boton-secundario"
+
+                  <Boton
                     disabled={guardando}
-                    onClick={() => {
-                      setEditando(competencia);
-                      setNombre(competencia.nombreCompetencia);
-                      setErrorFormulario("");
-                      setMensaje("");
-                      inputRef.current?.focus();
-                    }}
+                    onClick={() => iniciarEdicion(competencia)}
                     aria-label={`Editar competencia: ${competencia.nombreCompetencia}`}
                   >
                     Editar
-                  </button>
+                  </Boton>
                 </li>
               ))}
             </ul>
@@ -196,65 +270,88 @@ export function CompetenciasModal({
             className="competencias-modal__formulario"
             onSubmit={guardar}
             aria-busy={guardando}
+            noValidate
           >
             <h3>{editando ? "Editar competencia" : "Nueva competencia"}</h3>
 
             <div className="competencias-modal__campo">
-              <label htmlFor="competencia-nombre">
-                Nombre de la competencia
-              </label>
+              <label htmlFor={nombreId}>Nombre de la competencia</label>
+
               <textarea
                 ref={inputRef}
-                id="competencia-nombre"
+                id={nombreId}
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  const valor = evento.target.value;
+
+                  setNombre(valor);
+                  setErrorFormulario("");
+                  setMensaje("");
+
+                  if (campoRevisadoRef.current) {
+                    setErrorCampo(validarNombre(valor));
+                  }
+                }}
+                onBlur={() => {
+                  // Al guardar o cambiar de edición no validamos
+                  // el valor anterior por la pérdida de foco.
+                  if (guardandoRef.current) return;
+
+                  campoRevisadoRef.current = true;
+                  setErrorCampo(validarNombre(nombre));
+                }}
                 maxLength={500}
                 rows={3}
                 disabled={guardando}
+                aria-invalid={errorCampo ? true : undefined}
+                aria-describedby={[
+                  `${nombreId}-ayuda`,
+                  errorCampo ? `${nombreId}-error` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 required
               />
+
+              <p id={`${nombreId}-ayuda`} className="campo__ayuda">
+                Máximo 500 caracteres.
+              </p>
+
+              {errorCampo && (
+                <p id={`${nombreId}-error`} className="campo__error">
+                  {errorCampo}
+                </p>
+              )}
             </div>
 
             {errorFormulario && <p role="alert">{errorFormulario}</p>}
+
             {mensaje && <p role="status">{mensaje}</p>}
 
             <div className="competencias-modal__acciones">
               {editando && (
-                <button
-                  type="button"
-                  className="cursos__boton-secundario"
-                  onClick={cancelarEdicion}
-                  disabled={guardando}
-                >
+                <Boton onClick={cancelarEdicion} disabled={guardando}>
                   Cancelar edición
-                </button>
+                </Boton>
               )}
 
-              <button
+              <Boton
                 type="submit"
-                className="cursos__boton"
-                disabled={guardando}
+                variante="principal"
+                cargando={guardando}
+                textoCargando="Guardando..."
               >
-                {guardando
-                  ? "Guardando..."
-                  : editando
-                    ? "Guardar cambios"
-                    : "Registrar competencia"}
-              </button>
+                {editando ? "Guardar cambios" : "Registrar competencia"}
+              </Boton>
             </div>
           </form>
         </>
       )}
 
       <footer className="competencias-modal__acciones">
-        <button
-          type="button"
-          className="cursos__boton-secundario"
-          disabled={guardando}
-          onClick={onCerrar}
-        >
+        <Boton disabled={guardando} onClick={cerrar}>
           Cerrar
-        </button>
+        </Boton>
       </footer>
     </dialog>
   );

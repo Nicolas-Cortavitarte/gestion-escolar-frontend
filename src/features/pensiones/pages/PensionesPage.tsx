@@ -1,13 +1,20 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { obtenerPensiones, pagarPension } from "../pensiones.service";
 import { obtenerMatriculas } from "../../matriculas/matriculas.service";
 import type { Pension } from "../pensiones.types";
 import type { Matricula } from "../../matriculas/matriculas.types";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { BadgeEstado } from "../../../shared/components/BadgeEstado";
+import { Paginacion } from "../../../shared/components/Paginacion";
+import "../../../styles/listados.css";
 import "./PensionesPage.css";
 
 interface PensionesPageProps {
   token: string;
 }
+
+const POR_PAGINA = 10;
 
 const meses = [
   "Enero",
@@ -35,20 +42,34 @@ const moneda = new Intl.NumberFormat("es-PE", {
   currency: "PEN",
 });
 
+function normalizar(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .trim();
+}
+
 export function PensionesPage({ token }: PensionesPageProps) {
   const [pensiones, setPensiones] = useState<Pension[]>([]);
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [intento, setIntento] = useState(0);
+
   const [busqueda, setBusqueda] = useState("");
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
-  const [estado, setEstado] = useState("");
   const [mes, setMes] = useState(String(new Date().getMonth() + 1));
+  const [estado, setEstado] = useState("");
+  const [pagina, setPagina] = useState(1);
+
   const [pensionSeleccionada, setPensionSeleccionada] =
     useState<Pension | null>(null);
-  const [pagandoId, setPagandoId] = useState<string | null>(null);
+  const [pagando, setPagando] = useState(false);
   const [mensajePago, setMensajePago] = useState("");
   const [errorPago, setErrorPago] = useState("");
+
+  const pagandoRef = useRef(false);
 
   useEffect(() => {
     let activo = true;
@@ -77,7 +98,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
     return () => {
       activo = false;
     };
-  }, [token]);
+  }, [token, intento]);
 
   const matriculasPorId = new Map(
     matriculas.map((matricula) => [matricula.id, matricula]),
@@ -90,7 +111,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
     ]),
   ).sort((a, b) => b - a);
 
-  const termino = busqueda.trim().toLocaleLowerCase("es");
+  const termino = normalizar(busqueda);
 
   const filtradas = pensiones
     .filter((pension) => {
@@ -99,7 +120,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
       return (
         matricula !== undefined &&
         matricula.anioLectivo === Number(anio) &&
-        matricula.nombreEstudiante.toLocaleLowerCase("es").includes(termino) &&
+        normalizar(matricula.nombreEstudiante).includes(termino) &&
         (mes === "" || pension.mes === Number(mes)) &&
         (estado === "" || pension.estado === estado)
       );
@@ -110,18 +131,45 @@ export function PensionesPage({ token }: PensionesPageProps) {
       const nombreB =
         matriculasPorId.get(b.matriculaId)?.nombreEstudiante ?? "";
 
-      return nombreA.localeCompare(nombreB, "es") || a.mes - b.mes;
+      return (
+        nombreA.localeCompare(nombreB, "es") ||
+        a.mes - b.mes ||
+        a.id.localeCompare(b.id)
+      );
     });
 
-  async function registrarPago(pension: Pension) {
-    if (pagandoId !== null || pension.estado === "PAGADO") return;
+  const paginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, paginas);
+  const visibles = filtradas.slice(
+    (paginaActual - 1) * POR_PAGINA,
+    paginaActual * POR_PAGINA,
+  );
 
-    setPagandoId(pension.id);
-    setMensajePago("");
+  function cerrarPago() {
+    if (pagandoRef.current) return;
+
+    setPensionSeleccionada(null);
+    setErrorPago("");
+  }
+
+  async function registrarPago() {
+    const seleccionada = pensionSeleccionada;
+
+    if (
+      !seleccionada ||
+      seleccionada.estado === "PAGADO" ||
+      seleccionada.montoTotal == null ||
+      pagandoRef.current
+    ) {
+      return;
+    }
+
+    pagandoRef.current = true;
+    setPagando(true);
     setErrorPago("");
 
     try {
-      const actualizada = await pagarPension(token, pension.id);
+      const actualizada = await pagarPension(token, seleccionada.id);
 
       setPensiones((actuales) =>
         actuales.map((item) =>
@@ -129,10 +177,13 @@ export function PensionesPage({ token }: PensionesPageProps) {
         ),
       );
 
-      const nombre = matriculasPorId.get(pension.matriculaId)?.nombreEstudiante;
+      const nombre = matriculasPorId.get(
+        seleccionada.matriculaId,
+      )?.nombreEstudiante;
 
+      setPensionSeleccionada(null);
       setMensajePago(
-        `Pago de ${meses[pension.mes - 1]} registrado para ${
+        `Pago de ${meses[seleccionada.mes - 1]} registrado para ${
           nombre ?? "el estudiante"
         }.`,
       );
@@ -140,10 +191,11 @@ export function PensionesPage({ token }: PensionesPageProps) {
       setErrorPago(
         fallo instanceof Error
           ? fallo.message
-          : "No se pudo registrar el pago.",
+          : "No se pudo registrar el pago. Inténtalo nuevamente.",
       );
     } finally {
-      setPagandoId(null);
+      pagandoRef.current = false;
+      setPagando(false);
     }
   }
 
@@ -151,16 +203,23 @@ export function PensionesPage({ token }: PensionesPageProps) {
     <section className="pensiones">
       <header className="pensiones__encabezado">
         <h1>Pensiones</h1>
-        <p>Consulta las pensiones y el estado de pago de cada estudiante.</p>
+        <p>Consulta las pensiones y registra los pagos recibidos.</p>
       </header>
 
       <div className="pensiones__filtros">
-        <div className="pensiones__campo">
-          <label htmlFor="pensiones-anio">Año lectivo</label>
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pensiones-anio">
+            Año lectivo
+          </label>
           <select
             id="pensiones-anio"
+            className="campo__entrada"
             value={anio}
-            onChange={(evento) => setAnio(evento.target.value)}
+            onChange={(evento) => {
+              setAnio(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
           >
             {anios.map((valor) => (
               <option key={valor} value={valor}>
@@ -170,12 +229,19 @@ export function PensionesPage({ token }: PensionesPageProps) {
           </select>
         </div>
 
-        <div className="pensiones__campo">
-          <label htmlFor="pensiones-mes">Mes</label>
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pensiones-mes">
+            Mes
+          </label>
           <select
             id="pensiones-mes"
+            className="campo__entrada"
             value={mes}
-            onChange={(evento) => setMes(evento.target.value)}
+            onChange={(evento) => {
+              setMes(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
           >
             <option value="">Todos los meses</option>
             {meses.map((nombre, indice) => (
@@ -186,118 +252,191 @@ export function PensionesPage({ token }: PensionesPageProps) {
           </select>
         </div>
 
-        <div className="pensiones__campo">
-          <label htmlFor="pensiones-busqueda">Buscar estudiante</label>
-          <input
-            id="pensiones-busqueda"
-            type="search"
-            value={busqueda}
-            onChange={(evento) => setBusqueda(evento.target.value)}
-            placeholder="Nombres o apellidos"
-          />
-        </div>
+        <CampoEntrada
+          id="pensiones-busqueda"
+          etiqueta="Buscar estudiante"
+          type="search"
+          value={busqueda}
+          onChange={(evento) => {
+            setBusqueda(evento.target.value);
+            setPagina(1);
+          }}
+          placeholder="Nombres o apellidos"
+          disabled={cargando}
+        />
 
-        <div className="pensiones__campo">
-          <label htmlFor="pensiones-estado">Estado</label>
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pensiones-estado">
+            Estado
+          </label>
           <select
             id="pensiones-estado"
+            className="campo__entrada"
             value={estado}
-            onChange={(evento) => setEstado(evento.target.value)}
+            onChange={(evento) => {
+              setEstado(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
           >
             <option value="">Todos</option>
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="PAGADO">Pagada</option>
-            <option value="EN_MORA">En mora</option>
+            {Object.entries(estados).map(([valor, etiqueta]) => (
+              <option key={valor} value={valor}>
+                {etiqueta}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {cargando && <p role="status">Cargando pensiones...</p>}
-      {error && <p role="alert">{error}</p>}
+      {mensajePago && (
+        <p className="pensiones__exito" role="status">
+          {mensajePago}
+        </p>
+      )}
 
-      {mensajePago && <p role="status">{mensajePago}</p>}
-      {errorPago && <p role="alert">{errorPago}</p>}
+      {cargando && (
+        <p className="estado-listado" role="status">
+          Cargando pensiones...
+        </p>
+      )}
+
+      {!cargando && error && (
+        <div className="estado-listado">
+          <p className="estado-listado__error" role="alert">
+            {error}
+          </p>
+          <Boton
+            onClick={() => {
+              setError("");
+              setCargando(true);
+              setIntento((actual) => actual + 1);
+            }}
+          >
+            Reintentar
+          </Boton>
+        </div>
+      )}
 
       {!cargando && !error && filtradas.length === 0 && (
-        <p>No hay pensiones que coincidan con los filtros.</p>
+        <div className="estado-listado">
+          <h2>No hay pensiones para estos filtros</h2>
+          <p>Prueba otro año o consulta todos los meses y estados.</p>
+          <Boton
+            onClick={() => {
+              setBusqueda("");
+              setMes("");
+              setEstado("");
+              setPagina(1);
+            }}
+          >
+            Ver todos los meses y estados
+          </Boton>
+        </div>
       )}
 
       {!cargando && !error && filtradas.length > 0 && (
-        <div
-          className="pensiones__tabla-contenedor"
-          role="region"
-          aria-label="Listado de pensiones"
-          tabIndex={0}
-        >
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Estudiante</th>
-                <th scope="col">Mes</th>
-                <th scope="col">Monto base</th>
-                <th scope="col">Mora</th>
-                <th scope="col">Total</th>
-                <th scope="col">Vencimiento</th>
-                <th scope="col">Estado</th>
-                <th scope="col">Acciones</th>
-              </tr>
-            </thead>
+        <>
+          <div
+            className="tabla-listado"
+            role="region"
+            aria-label="Listado de pensiones"
+            tabIndex={0}
+          >
+            <table>
+              <caption className="solo-lectores">
+                Pensiones del año {anio}
+              </caption>
 
-            <tbody>
-              {filtradas.map((pension) => (
-                <tr key={pension.id}>
-                  <td>
-                    {matriculasPorId.get(pension.matriculaId)?.nombreEstudiante}
-                  </td>
-                  <td>{meses[pension.mes - 1]}</td>
-                  <td>{moneda.format(pension.montoBase)}</td>
-                  <td>{moneda.format(pension.moraAcumulada)}</td>
-                  <td>
-                    {pension.montoTotal == null
-                      ? "No disponible"
-                      : moneda.format(pension.montoTotal)}
-                  </td>
-                  <td>
-                    {pension.fechaVencimiento.split("-").reverse().join("/")}
-                  </td>
-                  <td>
-                    <span
-                      className={`pensiones__estado pensiones__estado--${pension.estado.toLowerCase()}`}
-                    >
-                      {estados[pension.estado]}
-                    </span>
-                  </td>
-                  <td>
-                    {pension.estado === "PAGADO" ? (
-                      <span className="pensiones__pago-registrado">
-                        Pago registrado
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="pensiones__boton-pago"
-                        disabled={
-                          pagandoId !== null || pension.montoTotal == null
-                        }
-                        onClick={() => setPensionSeleccionada(pension)}
-                        aria-label={`Registrar pago de ${
-                          meses[pension.mes - 1]
-                        } de ${
-                          matriculasPorId.get(pension.matriculaId)
-                            ?.nombreEstudiante ?? "estudiante"
-                        }`}
-                      >
-                        {pagandoId === pension.id
-                          ? "Registrando..."
-                          : "Registrar pago"}
-                      </button>
-                    )}
-                  </td>
+              <thead>
+                <tr>
+                  <th scope="col">Estudiante</th>
+                  <th scope="col">Mes</th>
+                  <th scope="col">Monto base</th>
+                  <th scope="col">Mora</th>
+                  <th scope="col">Total</th>
+                  <th scope="col">Vencimiento</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+
+              <tbody>
+                {visibles.map((pension) => {
+                  const nombre =
+                    matriculasPorId.get(pension.matriculaId)
+                      ?.nombreEstudiante ?? "Estudiante";
+
+                  return (
+                    <tr key={pension.id}>
+                      <td data-label="Estudiante">{nombre}</td>
+                      <td data-label="Mes">{meses[pension.mes - 1]}</td>
+                      <td data-label="Monto base">
+                        {moneda.format(pension.montoBase)}
+                      </td>
+                      <td data-label="Mora">
+                        {moneda.format(pension.moraAcumulada)}
+                      </td>
+                      <td data-label="Total">
+                        {pension.montoTotal == null
+                          ? "No disponible"
+                          : moneda.format(pension.montoTotal)}
+                      </td>
+                      <td data-label="Vencimiento">
+                        {pension.fechaVencimiento
+                          .split("-")
+                          .reverse()
+                          .join("/")}
+                      </td>
+                      <td data-label="Estado">
+                        <BadgeEstado
+                          variante={
+                            pension.estado === "PAGADO"
+                              ? "exito"
+                              : pension.estado === "EN_MORA"
+                                ? "error"
+                                : "pendiente"
+                          }
+                        >
+                          {estados[pension.estado]}
+                        </BadgeEstado>
+                      </td>
+                      <td data-label="Acciones">
+                        {pension.estado === "PAGADO" ? (
+                          <span>Pago registrado</span>
+                        ) : pension.montoTotal == null ? (
+                          <span>
+                            Total no disponible para registrar el pago
+                          </span>
+                        ) : (
+                          <Boton
+                            onClick={() => {
+                              setMensajePago("");
+                              setErrorPago("");
+                              setPensionSeleccionada(pension);
+                            }}
+                            aria-label={`Registrar pago de ${
+                              meses[pension.mes - 1]
+                            } de ${nombre}`}
+                          >
+                            Registrar pago
+                          </Boton>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <Paginacion
+            pagina={paginaActual}
+            total={filtradas.length}
+            porPagina={POR_PAGINA}
+            onCambiar={setPagina}
+          />
+        </>
       )}
 
       {pensionSeleccionada && (
@@ -307,12 +446,10 @@ export function PensionesPage({ token }: PensionesPageProps) {
             matriculasPorId.get(pensionSeleccionada.matriculaId)
               ?.nombreEstudiante ?? "Estudiante"
           }
-          onCancelar={() => setPensionSeleccionada(null)}
-          onConfirmar={() => {
-            const seleccionada = pensionSeleccionada;
-            setPensionSeleccionada(null);
-            void registrarPago(seleccionada);
-          }}
+          pagando={pagando}
+          error={errorPago}
+          onCancelar={cerrarPago}
+          onConfirmar={() => void registrarPago()}
         />
       )}
     </section>
@@ -322,6 +459,8 @@ export function PensionesPage({ token }: PensionesPageProps) {
 interface ConfirmarPagoPensionModalProps {
   pension: Pension;
   nombreEstudiante: string;
+  pagando: boolean;
+  error: string;
   onCancelar: () => void;
   onConfirmar: () => void;
 }
@@ -329,86 +468,98 @@ interface ConfirmarPagoPensionModalProps {
 function ConfirmarPagoPensionModal({
   pension,
   nombreEstudiante,
+  pagando,
+  error,
   onCancelar,
   onConfirmar,
 }: ConfirmarPagoPensionModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const tituloId = useId();
+  const descripcionId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
+    const elementoAnterior = document.activeElement;
 
-    if (!dialog) return;
-
-    dialog.showModal();
+    if (dialog && !dialog.open) dialog.showModal();
 
     return () => {
-      dialog.close();
+      dialog?.close();
+
+      if (
+        elementoAnterior instanceof HTMLElement &&
+        elementoAnterior.isConnected
+      ) {
+        elementoAnterior.focus();
+      } else {
+        document.getElementById("pensiones-busqueda")?.focus();
+      }
     };
   }, []);
+
+  const detalles = [
+    ["Estudiante", nombreEstudiante],
+    [
+      "Periodo",
+      `${meses[pension.mes - 1]} de ${pension.fechaVencimiento.slice(0, 4)}`,
+    ],
+    ["Monto base", moneda.format(pension.montoBase)],
+    ["Mora acumulada", moneda.format(pension.moraAcumulada)],
+    [
+      "Total recibido",
+      pension.montoTotal == null
+        ? "No disponible"
+        : moneda.format(pension.montoTotal),
+    ],
+  ];
 
   return (
     <dialog
       ref={dialogRef}
       className="pensiones__modal"
-      aria-labelledby="pension-pago-titulo"
-      aria-describedby="pension-pago-descripcion"
+      aria-labelledby={tituloId}
+      aria-describedby={descripcionId}
+      aria-busy={pagando}
       onCancel={(evento) => {
         evento.preventDefault();
         onCancelar();
       }}
     >
-      <h2 id="pension-pago-titulo">Confirmar pago de pensión</h2>
+      <h2 id={tituloId}>Confirmar pago de pensión</h2>
 
-      <p id="pension-pago-descripcion">
-        Confirma cuando el colegio haya recibido el importe total.
+      <p id={descripcionId}>
+        Confirma únicamente cuando el colegio haya recibido el importe total.
       </p>
 
       <dl className="pensiones__modal-detalle">
-        <div>
-          <dt>Estudiante</dt>
-          <dd>{nombreEstudiante}</dd>
-        </div>
-
-        <div>
-          <dt>Periodo</dt>
-          <dd>
-            {meses[pension.mes - 1]} de {pension.fechaVencimiento.slice(0, 4)}
-          </dd>
-        </div>
-
-        <div>
-          <dt>Monto base</dt>
-          <dd>{moneda.format(pension.montoBase)}</dd>
-        </div>
-
-        <div>
-          <dt>Mora acumulada</dt>
-          <dd>{moneda.format(pension.moraAcumulada)}</dd>
-        </div>
-
-        <div>
-          <dt>Total recibido</dt>
-          <dd>{moneda.format(pension.montoTotal)}</dd>
-        </div>
+        {detalles.map(([etiqueta, valor]) => (
+          <div key={etiqueta}>
+            <dt>{etiqueta}</dt>
+            <dd>{valor}</dd>
+          </div>
+        ))}
       </dl>
 
-      <div className="pensiones__modal-acciones">
-        <button
-          type="button"
-          className="pensiones__boton-cancelar"
-          onClick={onCancelar}
-          autoFocus
-        >
-          Cancelar
-        </button>
+      {error && (
+        <p className="pensiones__error" role="alert">
+          {error}
+        </p>
+      )}
 
-        <button
-          type="button"
-          className="pensiones__boton-pago"
+      <div className="pensiones__modal-acciones">
+        <Boton onClick={onCancelar} disabled={pagando} autoFocus>
+          Cancelar
+        </Boton>
+
+        <Boton
+          variante="principal"
           onClick={onConfirmar}
+          cargando={pagando}
+          textoCargando="Registrando..."
+          disabled={pension.montoTotal == null}
         >
-          Confirmar pago
-        </button>
+          {error ? "Reintentar pago" : "Confirmar pago"}
+        </Boton>
       </div>
     </dialog>
   );

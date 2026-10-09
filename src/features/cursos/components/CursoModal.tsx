@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { actualizarCurso, crearCurso } from "../cursos.service";
 import { obtenerDocentes } from "../../docentes/docentes.service";
 import type { Curso } from "../cursos.types";
 import type { Docente } from "../../docentes/docentes.types";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { useValidacion } from "../../../shared/hooks/useValidacion";
+import { GRADOS_POR_NIVEL } from "../../../shared/constants/academico";
 
 interface CursoModalProps {
   token: string;
@@ -21,25 +25,56 @@ export function CursoModal({
   onCerrar,
 }: CursoModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const guardandoRef = useRef(false);
+  const id = useId();
+
   const [nombre, setNombre] = useState(curso?.nombre ?? "");
   const [nivel, setNivel] = useState(curso?.nivel ?? "");
   const [grado, setGrado] = useState(curso?.grado ?? "");
   const [anio, setAnio] = useState(String(curso?.anioLectivo ?? anioInicial));
   const [docenteId, setDocenteId] = useState(curso?.docenteId ?? "");
+
   const [docentes, setDocentes] = useState<Docente[]>([]);
   const [cargandoDocentes, setCargandoDocentes] = useState(true);
   const [errorDocentes, setErrorDocentes] = useState("");
+  const [intentoDocentes, setIntentoDocentes] = useState(0);
+
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [errorNivel, setErrorNivel] = useState("");
+  const [errorGrado, setErrorGrado] = useState("");
+
+  const { errores, eventos, validar } = useValidacion();
+
+  const nombreId = `${id}-nombre`;
+  const anioId = `${id}-anio`;
+  const nivelId = `${id}-nivel`;
+  const gradoId = `${id}-grado`;
+  const docenteIdCampo = `${id}-docente`;
+
+  const gradosDisponibles = GRADOS_POR_NIVEL[nivel] ?? [];
+  const nivelAnteriorNoValido =
+    nivel !== "" && !Object.hasOwn(GRADOS_POR_NIVEL, nivel);
+  const gradoAnteriorNoValido =
+    grado !== "" && !gradosDisponibles.includes(grado);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    dialog.showModal();
+    const elementoAnterior =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    if (!dialog.open) dialog.showModal();
 
     return () => {
       dialog.close();
+
+      if (elementoAnterior?.isConnected) {
+        elementoAnterior.focus();
+      }
     };
   }, []);
 
@@ -66,7 +101,7 @@ export function CursoModal({
     return () => {
       activo = false;
     };
-  }, [token]);
+  }, [token, intentoDocentes]);
 
   const docentesActivos = docentes
     .filter((docente) => docente.activo)
@@ -77,39 +112,78 @@ export function CursoModal({
       ),
     );
 
+  const docenteActual = curso?.docenteId;
+
   const asignadoFueraDeLista =
-    curso?.docenteId != null &&
-    !docentesActivos.some((docente) => docente.id === curso.docenteId);
+    Boolean(docenteActual) &&
+    !docentesActivos.some((docente) => docente.id === docenteActual);
+
+  function cerrar() {
+    if (!guardandoRef.current) onCerrar();
+  }
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando) return;
 
-    setError("");
-
-    const anioNumero = Number(anio);
-
-    if (
-      nombre.trim().length < 3 ||
-      nivel.trim().length < 3 ||
-      grado.trim().length < 3
-    ) {
-      setError("El nombre, nivel y grado deben tener al menos 3 caracteres.");
+    if (guardandoRef.current || cargandoDocentes || errorDocentes !== "") {
       return;
     }
+
+    const formulario = evento.currentTarget;
+
+    setError("");
+    setErrorNivel("");
+    setErrorGrado("");
+
+    const entradasValidas = validar(formulario);
+    const nivelValido = Object.hasOwn(GRADOS_POR_NIVEL, nivel);
+    const gradoValido = nivelValido && gradosDisponibles.includes(grado);
+
+    if (!nivelValido) {
+      setErrorNivel("Selecciona Inicial o Primaria.");
+    }
+
+    if (!gradoValido) {
+      setErrorGrado("Selecciona un grado del nivel elegido.");
+    }
+
+    if (!entradasValidas) return;
+
+    if (!nivelValido || !gradoValido) {
+      formulario
+        .querySelector<HTMLSelectElement>(
+          nivelValido ? `#${CSS.escape(gradoId)}` : `#${CSS.escape(nivelId)}`,
+        )
+        ?.focus();
+
+      return;
+    }
+
+    if (nombre.trim().length < 3) {
+      setError("El nombre del curso debe tener al menos 3 caracteres.");
+      formulario
+        .querySelector<HTMLInputElement>(`#${CSS.escape(nombreId)}`)
+        ?.focus();
+      return;
+    }
+
+    const anioNumero = Number(anio);
 
     if (!Number.isInteger(anioNumero) || anioNumero < 1 || anioNumero > 9999) {
       setError("Ingresa un año lectivo válido.");
       return;
     }
 
+    if (!formulario.reportValidity()) return;
+
+    guardandoRef.current = true;
     setGuardando(true);
 
     try {
       const datos = {
         nombre: nombre.trim(),
-        nivel: nivel.trim(),
-        grado: grado.trim(),
+        nivel,
+        grado,
         anioLectivo: anioNumero,
         docenteId: docenteId || null,
       };
@@ -124,6 +198,7 @@ export function CursoModal({
         fallo instanceof Error ? fallo.message : "No se pudo guardar el curso.",
       );
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
     }
   }
@@ -132,93 +207,164 @@ export function CursoModal({
     <dialog
       ref={dialogRef}
       className="cursos__modal"
-      aria-labelledby="curso-modal-titulo"
+      aria-labelledby={`${id}-titulo`}
+      aria-describedby={`${id}-descripcion`}
       onCancel={(evento) => {
         evento.preventDefault();
-        if (!guardando) onCerrar();
+        cerrar();
       }}
     >
       <form
         className="cursos__formulario"
         onSubmit={guardar}
+        onChange={() => setError("")}
         aria-busy={guardando}
+        noValidate
+        {...eventos}
       >
-        <h2 id="curso-modal-titulo">
+        <h2 id={`${id}-titulo`}>
           {curso ? "Editar curso" : "Registrar curso"}
         </h2>
 
-        <p>Completa los datos y selecciona un docente si deseas asignarlo.</p>
+        <p id={`${id}-descripcion`}>
+          Selecciona el nivel y grado correspondientes a las matrículas. La
+          asignación de docente es opcional.
+        </p>
 
         <fieldset disabled={guardando}>
           <legend>Datos del curso</legend>
 
           <div className="cursos__form-grid">
-            <div className="cursos__campo">
-              <label htmlFor="curso-nombre">Nombre</label>
-              <input
-                id="curso-nombre"
-                value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
-                minLength={3}
-                maxLength={100}
-                autoFocus
-                required
-              />
-            </div>
+            <CampoEntrada
+              id={nombreId}
+              etiqueta="Nombre del curso"
+              value={nombre}
+              onChange={(evento) => setNombre(evento.target.value)}
+              minLength={3}
+              maxLength={100}
+              error={errores[nombreId]}
+              autoFocus
+              required
+            />
 
-            <div className="cursos__campo">
-              <label htmlFor="curso-anio">Año lectivo</label>
-              <input
-                id="curso-anio"
-                type="number"
-                value={anio}
-                onChange={(evento) => setAnio(evento.target.value)}
-                min="1"
-                max="9999"
-                step="1"
-                required
-              />
-            </div>
+            <CampoEntrada
+              id={anioId}
+              etiqueta="Año lectivo"
+              type="number"
+              value={anio}
+              onChange={(evento) => setAnio(evento.target.value)}
+              min={1}
+              max={9999}
+              step={1}
+              error={errores[anioId]}
+              required
+            />
 
-            <div className="cursos__campo">
-              <label htmlFor="curso-nivel">Nivel</label>
-              <input
-                id="curso-nivel"
-                value={nivel}
-                onChange={(evento) => setNivel(evento.target.value)}
-                minLength={3}
-                maxLength={20}
-                placeholder="Ej.: Primaria"
-                required
-              />
-            </div>
+            <div className="campo">
+              <label htmlFor={nivelId}>Nivel</label>
 
-            <div className="cursos__campo">
-              <label htmlFor="curso-grado">Grado</label>
-              <input
-                id="curso-grado"
-                value={grado}
-                onChange={(evento) => setGrado(evento.target.value)}
-                minLength={3}
-                maxLength={50}
-                placeholder="Ej.: Primero"
-                required
-              />
-            </div>
-
-            <div className="cursos__campo">
-              <label htmlFor="curso-docente">Docente</label>
               <select
-                id="curso-docente"
+                id={nivelId}
+                className="campo__entrada"
+                value={nivel}
+                onChange={(evento) => {
+                  setNivel(evento.target.value);
+                  setGrado("");
+                  setErrorNivel("");
+                  setErrorGrado("");
+                }}
+                aria-invalid={errorNivel ? true : undefined}
+                aria-describedby={errorNivel ? `${nivelId}-error` : undefined}
+                required
+              >
+                <option value="">Selecciona un nivel</option>
+
+                {nivelAnteriorNoValido && (
+                  <option value={nivel} disabled>
+                    {nivel} — valor anterior
+                  </option>
+                )}
+
+                <option value="INICIAL">Inicial</option>
+                <option value="PRIMARIA">Primaria</option>
+              </select>
+
+              {errorNivel && (
+                <p id={`${nivelId}-error`} className="campo__error">
+                  {errorNivel}
+                </p>
+              )}
+            </div>
+
+            <div className="campo">
+              <label htmlFor={gradoId}>Grado</label>
+
+              <select
+                id={gradoId}
+                className="campo__entrada"
+                value={grado}
+                onChange={(evento) => {
+                  setGrado(evento.target.value);
+                  setErrorGrado("");
+                }}
+                disabled={gradosDisponibles.length === 0}
+                aria-invalid={errorGrado ? true : undefined}
+                aria-describedby={[
+                  `${gradoId}-ayuda`,
+                  errorGrado ? `${gradoId}-error` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                required
+              >
+                <option value="">
+                  {gradosDisponibles.length > 0
+                    ? "Selecciona un grado"
+                    : "Selecciona primero el nivel"}
+                </option>
+
+                {gradoAnteriorNoValido && (
+                  <option value={grado} disabled>
+                    {grado} — valor anterior
+                  </option>
+                )}
+
+                {gradosDisponibles.map((valor) => (
+                  <option key={valor} value={valor}>
+                    {valor}
+                  </option>
+                ))}
+              </select>
+
+              <p id={`${gradoId}-ayuda`} className="campo__ayuda">
+                Usa el mismo grado que figura en la matrícula.
+              </p>
+
+              {errorGrado && (
+                <p id={`${gradoId}-error`} className="campo__error">
+                  {errorGrado}
+                </p>
+              )}
+            </div>
+
+            <div className="campo">
+              <label htmlFor={docenteIdCampo}>
+                Docente asignado (opcional)
+              </label>
+
+              <select
+                id={docenteIdCampo}
+                className="campo__entrada"
                 value={docenteId}
                 onChange={(evento) => setDocenteId(evento.target.value)}
                 disabled={cargandoDocentes || errorDocentes !== ""}
+                aria-describedby={`${docenteIdCampo}-ayuda`}
               >
                 <option value="">Sin asignar</option>
 
-                {asignadoFueraDeLista && (
-                  <option value={curso!.docenteId!} disabled>
-                    {curso!.nombresDocente ?? "Docente actual"} (asignado)
+                {asignadoFueraDeLista && docenteActual && (
+                  <option value={docenteActual} disabled>
+                    {curso?.nombresDocente ?? "Docente actual"} (asignado)
                   </option>
                 )}
 
@@ -228,35 +374,47 @@ export function CursoModal({
                   </option>
                 ))}
               </select>
+
+              <p id={`${docenteIdCampo}-ayuda`} className="campo__ayuda">
+                Puedes asignarlo posteriormente.
+              </p>
             </div>
           </div>
         </fieldset>
 
-        {cargandoDocentes && <p role="status">Cargando docentes...</p>}
-        {errorDocentes && <p role="alert">{errorDocentes}</p>}
+        {cargandoDocentes && (
+          <p role="status">Cargando docentes disponibles...</p>
+        )}
+
+        {errorDocentes && (
+          <div className="estado-listado">
+            <p role="alert">{errorDocentes}</p>
+
+            <Boton
+              onClick={() => setIntentoDocentes((actual) => actual + 1)}
+              disabled={guardando}
+            >
+              Reintentar carga de docentes
+            </Boton>
+          </div>
+        )}
+
         {error && <p role="alert">{error}</p>}
 
         <div className="cursos__acciones">
-          <button
-            type="button"
-            className="cursos__boton-secundario"
-            onClick={onCerrar}
-            disabled={guardando}
-          >
+          <Boton onClick={cerrar} disabled={guardando}>
             Cancelar
-          </button>
+          </Boton>
 
-          <button
+          <Boton
             type="submit"
-            className="cursos__boton"
-            disabled={guardando || cargandoDocentes || errorDocentes !== ""}
+            variante="principal"
+            cargando={guardando}
+            textoCargando="Guardando..."
+            disabled={cargandoDocentes || errorDocentes !== ""}
           >
-            {guardando
-              ? "Guardando..."
-              : curso
-                ? "Guardar cambios"
-                : "Registrar curso"}
-          </button>
+            {curso ? "Guardar cambios" : "Registrar curso"}
+          </Boton>
         </div>
       </form>
     </dialog>

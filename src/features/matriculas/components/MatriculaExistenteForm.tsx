@@ -1,7 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { buscarEstudiantePorDni } from "../../estudiantes/estudiantes.service";
 import type { Estudiante } from "../../estudiantes/estudiantes.types";
 import { crearMatricula } from "../matriculas.service";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { useValidacion } from "../../../shared/hooks/useValidacion";
+import { GRADOS_POR_NIVEL } from "../../../shared/constants/academico";
 import "./InscripcionForm.css";
 
 interface MatriculaExistenteFormProps {
@@ -14,7 +18,8 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   const [buscando, setBuscando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [registrada, setRegistrada] = useState(false);
-  const [error, setError] = useState("");
+  const [errorBusqueda, setErrorBusqueda] = useState("");
+  const [errorMatricula, setErrorMatricula] = useState("");
   const [mensaje, setMensaje] = useState("");
 
   const [nivel, setNivel] = useState("");
@@ -22,60 +27,91 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   const [montoMatricula, setMontoMatricula] = useState("");
   const [montoPensionMensual, setMontoPensionMensual] = useState("");
   const [fechaVencimiento, setFechaVencimiento] = useState("");
-  const anioLectivo = new Date().getFullYear();
 
+  const buscandoRef = useRef(false);
+  const guardandoRef = useRef(false);
+  const dniRef = useRef<HTMLDivElement>(null);
+
+  const validacionBusqueda = useValidacion();
+  const validacionMatricula = useValidacion();
+
+  const anioLectivo = new Date().getFullYear();
   const bloqueado = guardando || registrada;
 
   async function buscar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (buscando || bloqueado) return;
 
-    setError("");
+    if (buscandoRef.current || bloqueado) return;
+
+    setErrorBusqueda("");
     setEstudiante(null);
 
-    if (!/^\d{8}$/.test(dni)) {
-      setError("El DNI debe tener 8 dígitos.");
-      return;
-    }
+    if (!validacionBusqueda.validar(evento.currentTarget)) return;
 
+    buscandoRef.current = true;
     setBuscando(true);
 
     try {
-      setEstudiante(await buscarEstudiantePorDni(token, dni));
-    } catch (fallo) {
-      setError(
-        fallo instanceof Error ? fallo.message : "Error al buscar estudiante.",
+      const encontrado = await buscarEstudiantePorDni(token, dni);
+      setEstudiante(encontrado);
+    } catch (fallo: unknown) {
+      setErrorBusqueda(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo buscar al estudiante. Inténtalo nuevamente.",
       );
     } finally {
+      buscandoRef.current = false;
       setBuscando(false);
     }
   }
 
   async function registrar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (!estudiante || buscando || bloqueado) return;
+
+    if (
+      !estudiante ||
+      buscandoRef.current ||
+      guardandoRef.current ||
+      registrada
+    ) {
+      return;
+    }
+
+    setErrorMatricula("");
+    setMensaje("");
+
+    if (!validacionMatricula.validar(evento.currentTarget)) return;
+
+    const gradosPermitidos = GRADOS_POR_NIVEL[nivel];
+
+    if (!gradosPermitidos || !gradosPermitidos.includes(grado)) {
+      setErrorMatricula("Selecciona un nivel y un grado válidos.");
+      return;
+    }
 
     const monto = Number(montoMatricula);
     const pension = Number(montoPensionMensual);
     const dia = Number(fechaVencimiento);
 
     if (
-      !nivel ||
-      !grado.trim() ||
+      !montoMatricula ||
+      !montoPensionMensual ||
       !Number.isFinite(monto) ||
       !Number.isFinite(pension) ||
       monto <= 0 ||
-      pension <= 0 ||
-      !Number.isInteger(dia) ||
-      dia < 1 ||
-      dia > 31
+      pension <= 0
     ) {
-      setError("Revisa el nivel, grado, montos y día de vencimiento.");
+      setErrorMatricula("Los montos deben ser mayores a cero.");
       return;
     }
 
-    setError("");
-    setMensaje("");
+    if (!fechaVencimiento || !Number.isInteger(dia) || dia < 1 || dia > 31) {
+      setErrorMatricula("Selecciona el día de vencimiento de la pensión.");
+      return;
+    }
+
+    guardandoRef.current = true;
     setGuardando(true);
 
     try {
@@ -83,7 +119,7 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
         estudianteId: estudiante.id,
         anioLectivo,
         nivel,
-        grado: grado.trim(),
+        grado,
         montoMatricula: monto,
         montoPensionMensual: pension,
         fechaVencimiento: dia,
@@ -93,13 +129,14 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
       setMensaje(
         `Matrícula registrada para ${estudiante.nombres} ${estudiante.apellidos}.`,
       );
-    } catch (fallo) {
-      setError(
+    } catch (fallo: unknown) {
+      setErrorMatricula(
         fallo instanceof Error
           ? fallo.message
-          : "Error al registrar matrícula.",
+          : "No se pudo registrar la matrícula. Inténtalo nuevamente.",
       );
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
     }
   }
@@ -112,43 +149,70 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
     setMontoMatricula("");
     setMontoPensionMensual("");
     setFechaVencimiento("");
-    setError("");
+    setErrorBusqueda("");
+    setErrorMatricula("");
     setMensaje("");
     setRegistrada(false);
+
+    requestAnimationFrame(() => {
+      dniRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    });
   }
 
   return (
     <div className="inscripcion">
-      <form className="inscripcion__tarjeta" onSubmit={buscar}>
-        <h2>Matricular estudiante registrado</h2>
+      <form
+        className="inscripcion__tarjeta"
+        onSubmit={buscar}
+        {...validacionBusqueda.eventos}
+        noValidate
+        aria-busy={buscando}
+      >
+        <h2>Buscar estudiante registrado</h2>
 
-        <label htmlFor="matricula-estudiante-dni">DNI del estudiante</label>
-        <input
-          id="matricula-estudiante-dni"
-          value={dni}
-          onChange={(evento) => {
-            setDni(evento.target.value.replace(/\D/g, "").slice(0, 8));
-            setEstudiante(null);
-            setError("");
-          }}
-          inputMode="numeric"
-          pattern="[0-9]{8}"
-          maxLength={8}
-          disabled={buscando || bloqueado}
-          required
-        />
+        <div ref={dniRef}>
+          <CampoEntrada
+            id="matricula-estudiante-dni"
+            etiqueta="DNI del estudiante"
+            value={dni}
+            onChange={(evento) => {
+              setDni(evento.target.value.replace(/\D/g, "").slice(0, 8));
+              setEstudiante(null);
+              setErrorBusqueda("");
+              setErrorMatricula("");
+            }}
+            inputMode="numeric"
+            pattern="[0-9]{8}"
+            data-mensaje-patron="El DNI debe tener 8 dígitos."
+            maxLength={8}
+            ayuda="Busca al estudiante antes de configurar su matrícula."
+            error={validacionBusqueda.errores["matricula-estudiante-dni"]}
+            disabled={buscando || bloqueado}
+            required
+          />
+        </div>
 
-        <button
-          type="submit"
-          className="inscripcion__boton-secundario"
-          disabled={buscando || bloqueado}
-        >
-          {buscando ? "Buscando..." : "Buscar estudiante"}
-        </button>
+        <div className="inscripcion__acciones">
+          <Boton
+            type="submit"
+            variante={estudiante ? "secundario" : "principal"}
+            cargando={buscando}
+            textoCargando="Buscando..."
+            disabled={bloqueado}
+          >
+            Buscar estudiante
+          </Boton>
+        </div>
+
+        {errorBusqueda && (
+          <p className="inscripcion__error" role="alert">
+            {errorBusqueda}
+          </p>
+        )}
 
         {estudiante && (
-          <p>
-            Estudiante: {estudiante.nombres} {estudiante.apellidos}
+          <p className="inscripcion__confirmacion" role="status">
+            Estudiante encontrado: {estudiante.nombres} {estudiante.apellidos}.
           </p>
         )}
       </form>
@@ -157,102 +221,169 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
         <form
           className="inscripcion__tarjeta"
           onSubmit={registrar}
-          style={{ marginTop: 20 }}
+          {...validacionMatricula.eventos}
+          noValidate
+          aria-busy={guardando}
         >
-          <h2>Configuración de matrícula</h2>
-          <p>Año lectivo: {anioLectivo}</p>
+          <h2>Datos de matrícula</h2>
 
-          <label htmlFor="existente-nivel">Nivel</label>
-          <select
-            id="existente-nivel"
-            value={nivel}
-            onChange={(evento) => {
-              setNivel(evento.target.value);
-              setGrado("");
-            }}
-            disabled={bloqueado}
-            required
-          >
-            <option value="">Selecciona un nivel</option>
-            <option value="INICIAL">Inicial</option>
-            <option value="PRIMARIA">Primaria</option>
-          </select>
+          <p className="inscripcion__resumen">
+            {estudiante.nombres} {estudiante.apellidos} · Año {anioLectivo}
+          </p>
 
-          <label htmlFor="existente-grado">Grado</label>
-          <input
-            id="existente-grado"
-            value={grado}
-            onChange={(evento) => setGrado(evento.target.value)}
-            disabled={bloqueado}
-            required
-          />
+          <fieldset className="inscripcion__datos" disabled={bloqueado}>
+            <legend className="solo-lectores">
+              Configuración de matrícula
+            </legend>
 
-          <label htmlFor="existente-matricula">Monto de matrícula (S/)</label>
-          <input
-            id="existente-matricula"
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={montoMatricula}
-            onChange={(evento) => setMontoMatricula(evento.target.value)}
-            disabled={bloqueado}
-            required
-          />
+            <div className="inscripcion__campos">
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="existente-nivel">
+                  Nivel
+                </label>
 
-          <label htmlFor="existente-pension">Pensión mensual (S/)</label>
-          <input
-            id="existente-pension"
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={montoPensionMensual}
-            onChange={(evento) => setMontoPensionMensual(evento.target.value)}
-            disabled={bloqueado}
-            required
-          />
+                <select
+                  id="existente-nivel"
+                  className="campo__entrada"
+                  value={nivel}
+                  onChange={(evento) => {
+                    setNivel(evento.target.value);
+                    setGrado("");
+                    setErrorMatricula("");
+                  }}
+                  required
+                >
+                  <option value="">Selecciona un nivel</option>
+                  <option value="INICIAL">Inicial</option>
+                  <option value="PRIMARIA">Primaria</option>
+                </select>
+              </div>
 
-          <label htmlFor="existente-vencimiento">Día de vencimiento</label>
-          <select
-            id="existente-vencimiento"
-            value={fechaVencimiento}
-            onChange={(evento) => setFechaVencimiento(evento.target.value)}
-            disabled={bloqueado}
-            required
-          >
-            <option value="">Selecciona un día</option>
-            {Array.from({ length: 31 }, (_, indice) => indice + 1).map(
-              (dia) => (
-                <option key={dia} value={dia}>
-                  Día {dia}
-                </option>
-              ),
-            )}
-          </select>
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="existente-grado">
+                  Grado
+                </label>
 
-          <button type="submit" disabled={bloqueado}>
-            {guardando
-              ? "Registrando..."
-              : registrada
-                ? "Matrícula registrada"
-                : "Registrar matrícula"}
-          </button>
+                <select
+                  id="existente-grado"
+                  className="campo__entrada"
+                  value={grado}
+                  onChange={(evento) => {
+                    setGrado(evento.target.value);
+                    setErrorMatricula("");
+                  }}
+                  disabled={!nivel}
+                  aria-describedby="existente-grado-ayuda"
+                  required
+                >
+                  <option value="">
+                    {nivel
+                      ? "Selecciona un grado"
+                      : "Selecciona primero el nivel"}
+                  </option>
+
+                  {(GRADOS_POR_NIVEL[nivel] ?? []).map((valor) => (
+                    <option key={valor} value={valor}>
+                      {valor}
+                    </option>
+                  ))}
+                </select>
+
+                <p className="campo__ayuda" id="existente-grado-ayuda">
+                  Los grados disponibles dependen del nivel seleccionado.
+                </p>
+              </div>
+
+              <CampoEntrada
+                id="existente-matricula"
+                etiqueta="Monto de matrícula (S/)"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={montoMatricula}
+                onChange={(evento) => setMontoMatricula(evento.target.value)}
+                error={validacionMatricula.errores["existente-matricula"]}
+                required
+              />
+
+              <CampoEntrada
+                id="existente-pension"
+                etiqueta="Pensión mensual (S/)"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={montoPensionMensual}
+                onChange={(evento) =>
+                  setMontoPensionMensual(evento.target.value)
+                }
+                error={validacionMatricula.errores["existente-pension"]}
+                required
+              />
+
+              <div className="campo">
+                <label
+                  className="campo__etiqueta"
+                  htmlFor="existente-vencimiento"
+                >
+                  Día de vencimiento de la pensión
+                </label>
+
+                <select
+                  id="existente-vencimiento"
+                  className="campo__entrada"
+                  value={fechaVencimiento}
+                  onChange={(evento) => {
+                    setFechaVencimiento(evento.target.value);
+                    setErrorMatricula("");
+                  }}
+                  required
+                >
+                  <option value="">Selecciona un día</option>
+
+                  {Array.from({ length: 31 }, (_, indice) => indice + 1).map(
+                    (dia) => (
+                      <option key={dia} value={dia}>
+                        Día {dia}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          {errorMatricula && (
+            <p className="inscripcion__error" role="alert">
+              {errorMatricula}
+            </p>
+          )}
+
+          {registrada ? (
+            <>
+              <p className="inscripcion__confirmacion" role="status">
+                {mensaje}
+              </p>
+
+              <div className="inscripcion__acciones">
+                <Boton variante="principal" onClick={nuevaMatricula}>
+                  Nueva matrícula
+                </Boton>
+              </div>
+            </>
+          ) : (
+            <div className="inscripcion__acciones">
+              <Boton
+                type="submit"
+                variante="principal"
+                cargando={guardando}
+                textoCargando="Registrando..."
+              >
+                Registrar matrícula
+              </Boton>
+            </div>
+          )}
         </form>
       )}
-
-      <div className="inscripcion__mensajes">
-        {error && <p role="alert">{error}</p>}
-        {mensaje && <p role="status">{mensaje}</p>}
-
-        {registrada && (
-          <button
-            type="button"
-            className="inscripcion__boton-secundario"
-            onClick={nuevaMatricula}
-          >
-            Nueva matrícula
-          </button>
-        )}
-      </div>
     </div>
   );
 }

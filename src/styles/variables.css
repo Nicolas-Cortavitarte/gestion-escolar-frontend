@@ -1,0 +1,58 @@
+:root {
+  /* Identidad: navegación, enlaces y elementos activos */
+  --azul-claro: #eff6ff;
+  --azul-base: #204589;
+  --azul-oscuro: #173565;
+
+  /* Acciones principales */
+  --naranja-claro: #FFF7ED;
+  --naranja-base: #EA580C;
+  --naranja-oscuro: #C2410C;
+
+  /* Estados */
+  --verde-claro: #f0fdf4;
+  --verde-base: #166534;
+  --verde-oscuro: #14532d;
+
+  --rojo-claro: #fef2f2;
+  --rojo-base: #b91c1c;
+  --rojo-oscuro: #991b1b;
+
+  /* Superficies y texto */
+  --color-fondo: #f8fafc;
+  --color-superficie: #ffffff;
+  --color-texto: #1f2937;
+  --color-texto-secundario: #475569;
+  --color-borde: #cbd5e1;
+  --color-borde-control: #64748b;
+
+  /* Interacción */
+  --color-enlace: var(--azul-base);
+  --color-enlace-hover: var(--azul-oscuro);
+  --color-accion: var(--naranja-base);
+  --color-accion-hover: var(--naranja-oscuro);
+  --color-foco: var(--azul-base);
+  --color-deshabilitado-fondo: #e2e8f0;
+  --color-deshabilitado-texto: #475569;
+
+  /* Tipografía */
+  --fuente-principal: system-ui, "Segoe UI", Roboto, sans-serif;
+  --texto-pequeno: 0.875rem;
+  --texto-normal: 1rem;
+  --texto-subtitulo: 1.25rem;
+  --texto-titulo: clamp(1.75rem, 3vw, 2.25rem);
+
+  /* Espaciado */
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-6: 1.5rem;
+  --espacio-8: 2rem;
+
+  /* Forma y tamaño */
+  --radio-control: 0.5rem;
+  --radio-tarjeta: 0.75rem;
+  --altura-control: 3rem;
+  --ancho-contenido: 80rem;
+}

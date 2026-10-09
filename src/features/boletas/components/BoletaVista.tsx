@@ -35,7 +35,10 @@ const criteriosAsistencia: {
   >;
   nombre: string;
 }[] = [
-  { campo: "inasistenciasJustificadas", nombre: "Inasistencias justificadas" },
+  {
+    campo: "inasistenciasJustificadas",
+    nombre: "Inasistencias justificadas",
+  },
   {
     campo: "inasistenciasInjustificadas",
     nombre: "Inasistencias injustificadas",
@@ -109,7 +112,12 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
         {boleta.areas.length === 0 ? (
           <p>No hay cursos configurados para esta matrícula.</p>
         ) : (
-          <div className="boleta__tabla-contenedor">
+          <div
+            className="boleta__tabla-contenedor"
+            role="region"
+            aria-label="Calificaciones por competencia y área"
+            tabIndex={0}
+          >
             <table>
               <caption>Calificaciones por competencia y área</caption>
               <thead>
@@ -124,14 +132,9 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
                 </tr>
               </thead>
 
-              <tbody>
-                {boleta.areas.map((area, indiceArea) => (
-                  <BloqueArea
-                    key={`${indiceArea}-${area.nombreArea}`}
-                    area={area}
-                  />
-                ))}
-              </tbody>
+              {boleta.areas.map((area, indice) => (
+                <BloqueArea key={`${indice}-${area.nombreArea}`} area={area} />
+              ))}
             </table>
           </div>
         )}
@@ -139,7 +142,13 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
 
       <section className="boleta__seccion">
         <h3>Conducta del alumno</h3>
-        <div className="boleta__tabla-contenedor">
+
+        <div
+          className="boleta__tabla-contenedor"
+          role="region"
+          aria-label="Conducta por bimestre"
+          tabIndex={0}
+        >
           <table>
             <caption>Conducta por bimestre</caption>
             <thead>
@@ -152,6 +161,7 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {criteriosConducta.map(({ campo, nombre }) => (
                 <tr key={campo}>
@@ -163,6 +173,7 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
                   ))}
                 </tr>
               ))}
+
               <tr className="boleta__calificativo-area">
                 <th scope="row">CALIFICACIÓN DEL BIMESTRE</th>
                 {bimestres.map((bimestre) => (
@@ -179,7 +190,13 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
 
       <section className="boleta__seccion">
         <h3>Asistencia</h3>
-        <div className="boleta__tabla-contenedor">
+
+        <div
+          className="boleta__tabla-contenedor"
+          role="region"
+          aria-label="Asistencia por bimestre"
+          tabIndex={0}
+        >
           <table>
             <caption>Inasistencias y tardanzas por bimestre</caption>
             <thead>
@@ -192,6 +209,7 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {criteriosAsistencia.map(({ campo, nombre }) => (
                 <tr key={campo}>
@@ -210,8 +228,14 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
 
       <section className="boleta__seccion">
         <h3>Apreciación del tutor</h3>
-        <div className="boleta__tabla-contenedor">
-          <table>
+
+        <div
+          className="boleta__tabla-contenedor"
+          role="region"
+          aria-label="Observaciones del tutor"
+          tabIndex={0}
+        >
+          <table className="boleta__tabla-observaciones">
             <caption>Observaciones por bimestre</caption>
             <thead>
               <tr>
@@ -219,6 +243,7 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
                 <th scope="col">Apreciación</th>
               </tr>
             </thead>
+
             <tbody>
               {bimestres.map((bimestre) => (
                 <tr key={bimestre}>
@@ -235,7 +260,13 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
 
       <section className="boleta__seccion">
         <h3>Evaluación del padre de familia</h3>
-        <div className="boleta__tabla-contenedor">
+
+        <div
+          className="boleta__tabla-contenedor"
+          role="region"
+          aria-label="Evaluación del padre de familia"
+          tabIndex={0}
+        >
           <table>
             <caption>Evaluación del padre de familia por bimestre</caption>
             <thead>
@@ -248,6 +279,7 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {criteriosPadre.map(({ campo, nombre }) => (
                 <tr key={campo}>
@@ -266,20 +298,35 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
 
       <section className="boleta__seccion">
         <h3>Resumen final del alumno</h3>
-        <dl className="boleta__resumen">
-          <div>
-            <dt>Situación final</dt>
-            <dd>
-              {boleta.resumenFinal
-                ? situaciones[boleta.resumenFinal.situacionFinal]
-                : "Pendiente de cálculo"}
-            </dd>
-          </div>
-          <div>
-            <dt>Áreas a recuperar</dt>
-            <dd>{boleta.resumenFinal?.areaARecuperar ?? ""}</dd>
-          </div>
-        </dl>
+
+        <div className="boleta__tabla-contenedor">
+          <table className="boleta__tabla-resumen">
+            <caption>Situación académica al finalizar el año lectivo</caption>
+
+            <thead>
+              <tr>
+                <th scope="col">Situación final</th>
+                <th scope="col">Áreas a recuperar</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td>
+                  {boleta.resumenFinal
+                    ? situaciones[boleta.resumenFinal.situacionFinal]
+                    : "Pendiente"}
+                </td>
+
+                <td>
+                  {boleta.resumenFinal
+                    ? boleta.resumenFinal.areaARecuperar?.trim() || "Ninguna"
+                    : "Pendiente"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </article>
   );
@@ -287,7 +334,7 @@ export function BoletaVista({ boleta }: BoletaVistaProps) {
 
 function BloqueArea({ area }: { area: Boleta["areas"][number] }) {
   return (
-    <>
+    <tbody>
       {area.competencias.map((competencia, indice) => (
         <tr key={`${indice}-${competencia.nombreCompetencia}`}>
           {indice === 0 && (
@@ -295,12 +342,15 @@ function BloqueArea({ area }: { area: Boleta["areas"][number] }) {
               {area.nombreArea}
             </th>
           )}
+
           <th scope="row">{competencia.nombreCompetencia}</th>
+
           {bimestres.map((bimestre) => (
             <td key={bimestre}>
               {competencia.notasPorBimestre[bimestre] ?? ""}
             </td>
           ))}
+
           <td>{competencia.promedioFinal ?? ""}</td>
         </tr>
       ))}
@@ -316,13 +366,15 @@ function BloqueArea({ area }: { area: Boleta["areas"][number] }) {
         <th scope="row" colSpan={2}>
           Calificativo del área: {area.nombreArea}
         </th>
+
         {bimestres.map((bimestre) => (
           <td key={bimestre}>
             {area.calificativoAreaPorBimestre[bimestre] ?? ""}
           </td>
         ))}
+
         <td>{area.promedioFinalArea ?? ""}</td>
       </tr>
-    </>
+    </tbody>
   );
 }
