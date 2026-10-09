@@ -1,0 +1,93 @@
+.curso-estudiantes {
+  display: grid;
+  gap: var(--espacio-6);
+  min-width: 0;
+  color: var(--color-texto);
+}
+
+.curso-estudiantes__encabezado h1 {
+  margin: 0;
+  color: var(--azul-base);
+  font-size: var(--texto-titulo);
+  overflow-wrap: anywhere;
+}
+
+.curso-estudiantes__encabezado p {
+  margin: var(--espacio-2) 0 0;
+  color: var(--color-texto-secundario);
+  line-height: 1.5;
+}
+
+.curso-estudiantes__filtros {
+  display: grid;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+}
+
+.curso-estudiantes__filtros label {
+  font-weight: 600;
+}
+
+.curso-estudiantes__filtros input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--altura-control);
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.curso-estudiantes__filtros input:focus-visible {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.curso-estudiantes__filtros p {
+  margin: 0;
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-pequeno);
+}
+
+.curso-estudiantes__exito {
+  margin: 0;
+  padding: var(--espacio-4);
+  border: 1px solid var(--verde-base);
+  border-radius: var(--radio-control);
+  background: var(--verde-claro);
+  color: var(--verde-base);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.curso-estudiantes__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+}
+
+.curso-estudiantes__error {
+  margin: 0;
+  padding: var(--espacio-4);
+  border: 1px solid var(--rojo-base);
+  border-radius: var(--radio-control);
+  background: var(--rojo-claro);
+  color: var(--rojo-base);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .curso-estudiantes__filtros {
+    padding: var(--espacio-6);
+  }
+
+  .curso-estudiantes__filtros input {
+    max-width: 32rem;
+  }
+}

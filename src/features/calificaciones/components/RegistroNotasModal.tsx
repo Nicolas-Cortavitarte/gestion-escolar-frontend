@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { obtenerCursos } from "../../cursos/cursos.service";
+import { obtenerCursos, obtenerMisCursos } from "../../cursos/cursos.service";
 import { obtenerCompetenciasPorCurso } from "../../competencias/competencias.service";
 import type { Curso } from "../../cursos/cursos.types";
-import type { Matricula } from "../../matriculas/matriculas.types";
+import type { EstudianteCurso } from "../../cursos/cursos.types";
 import type { NotaCualitativa } from "../../boletas/boletas.types";
 import {
   obtenerReportesConducta,
@@ -19,11 +19,14 @@ import type { Bimestre } from "../notas.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import "../../../styles/listados.css";
+import "../components/RegistroNotasModal.css";
 
 interface RegistroNotasModalProps {
   token: string;
-  matricula: Matricula;
+  matricula: EstudianteCurso;
   onCerrar: (huboCambios: boolean) => void;
+  modo?: "admin" | "docente";
+  cursoInicialId?: string;
 }
 
 type Pestaña = "notas" | "conducta" | "padre";
@@ -163,6 +166,8 @@ export function RegistroNotasModal({
   token,
   matricula,
   onCerrar,
+  modo = "admin",
+  cursoInicialId = "",
 }: RegistroNotasModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const guardandoRef = useRef(false);
@@ -172,7 +177,7 @@ export function RegistroNotasModal({
 
   const [pestaña, setPestaña] = useState<Pestaña>("notas");
   const [bimestre, setBimestre] = useState<Bimestre>(1);
-  const [cursoId, setCursoId] = useState("");
+  const [cursoId, setCursoId] = useState(cursoInicialId);
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [cargandoCursos, setCargandoCursos] = useState(true);
   const [errorCursos, setErrorCursos] = useState("");
@@ -182,7 +187,7 @@ export function RegistroNotasModal({
   const [valores, setValores] = useState<Valores>({});
   const [originales, setOriginales] = useState<Valores>({});
   const [erroresCampos, setErroresCampos] = useState<Valores>({});
-  const [cargando, setCargando] = useState(false);
+  const [cargando, setCargando] = useState(cursoInicialId !== "");
   const [errorCarga, setErrorCarga] = useState("");
   const [intentoRegistros, setIntentoRegistros] = useState(0);
 
@@ -219,7 +224,10 @@ export function RegistroNotasModal({
   useEffect(() => {
     let activo = true;
 
-    obtenerCursos(token)
+    const solicitud =
+      modo === "docente" ? obtenerMisCursos(token) : obtenerCursos(token);
+
+    solicitud
       .then((datos) => {
         if (!activo) return;
 
@@ -247,6 +255,7 @@ export function RegistroNotasModal({
     };
   }, [
     token,
+    modo,
     matricula.anioLectivo,
     matricula.nivel,
     matricula.grado,
@@ -709,7 +718,9 @@ export function RegistroNotasModal({
             {campos.length > 0 && (
               <form onSubmit={guardar} noValidate aria-busy={guardando}>
                 <fieldset disabled={guardando}>
-                  <div className="registro-evaluaciones__campos">
+                  <div
+                    className={`registro-evaluaciones__campos ${pestaña === "notas" ? "registro-evaluaciones__campos--notas" : ""}`}
+                  >
                     {campos.map((campo) => {
                       const campoId = `${id}-${campo.clave}`;
                       const errorCampo = erroresCampos[campo.clave];

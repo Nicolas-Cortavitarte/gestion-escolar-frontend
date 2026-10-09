@@ -1,0 +1,229 @@
+.docente-dashboard {
+  display: grid;
+  gap: var(--espacio-6);
+  min-width: 0;
+  color: var(--color-texto);
+}
+
+.docente-dashboard__encabezado h1 {
+  margin: 0;
+  font-size: var(--texto-titulo);
+}
+
+.docente-dashboard__encabezado p {
+  margin: var(--espacio-2) 0 0;
+  color: var(--color-texto-secundario);
+  line-height: 1.5;
+}
+
+.docente-dashboard__filtros {
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+}
+
+.docente-dashboard__campo {
+  display: grid;
+  gap: var(--espacio-2);
+  max-width: 16rem;
+}
+
+.docente-dashboard__campo label {
+  font-weight: 600;
+}
+
+.docente-dashboard__campo select {
+  width: 100%;
+  min-height: var(--altura-control);
+  padding: var(--espacio-3);
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.docente-dashboard__campo select:focus-visible {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.docente-dashboard__resumen {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--espacio-4);
+  margin: 0;
+}
+
+.docente-dashboard__resumen > div {
+  display: grid;
+  gap: var(--espacio-3);
+  min-width: 0;
+  padding: var(--espacio-6);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+}
+
+.docente-dashboard__resumen dt {
+  color: var(--color-texto-secundario);
+  font-weight: 600;
+}
+
+.docente-dashboard__resumen dd {
+  margin: 0;
+  color: var(--azul-base);
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.docente-dashboard__curso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  height: 100%;
+  padding: var(--espacio-6);
+  border: 1px solid var(--color-borde);
+  border-top: 5px solid var(--azul-base);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+  box-shadow: 0 4px 16px rgb(15 23 42 / 6%);
+}
+
+.docente-dashboard__curso-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+}
+
+.docente-dashboard__curso-icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radio-control);
+  background: var(--azul-claro);
+  color: var(--azul-base);
+}
+
+.docente-dashboard__curso-nivel {
+  padding: var(--espacio-2) var(--espacio-3);
+  border-radius: 999px;
+  background: var(--azul-claro);
+  color: var(--azul-base);
+  font-size: var(--texto-pequeno);
+  font-weight: 600;
+}
+
+.docente-dashboard__curso h3 {
+  margin: 0;
+  color: var(--azul-base);
+  font-size: var(--texto-subtitulo);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.docente-dashboard__curso-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-4);
+  margin: auto 0 0;
+  padding-top: var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+.docente-dashboard__curso-datos > div {
+  display: grid;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.docente-dashboard__curso-datos dt {
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-pequeno);
+}
+
+.docente-dashboard__curso-datos dd {
+  margin: 0;
+  color: var(--color-texto);
+  font-size: var(--texto-subtitulo);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.docente-dashboard__estado,
+.docente-dashboard__error,
+.docente-dashboard__vacio {
+  margin: 0;
+  padding: var(--espacio-6);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+  line-height: 1.5;
+}
+
+.docente-dashboard__estado {
+  color: var(--color-texto-secundario);
+}
+
+.docente-dashboard__error {
+  display: grid;
+  justify-items: start;
+  gap: var(--espacio-4);
+  border-color: var(--rojo-base);
+  background: var(--rojo-claro);
+}
+
+.docente-dashboard__error p {
+  margin: 0;
+  color: var(--rojo-base);
+  overflow-wrap: anywhere;
+}
+
+.docente-dashboard__vacio p {
+  margin: 0;
+}
+
+.docente-dashboard__vacio p + p {
+  margin-top: var(--espacio-2);
+  color: var(--color-texto-secundario);
+}
+
+.docente-dashboard__lista {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--espacio-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docente-dashboard__lista > li {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .docente-dashboard__filtros {
+    padding: var(--espacio-6);
+  }
+
+  .docente-dashboard__resumen,
+  .docente-dashboard__lista {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .docente-dashboard__lista {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

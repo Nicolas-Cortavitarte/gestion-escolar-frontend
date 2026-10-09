@@ -15,3 +15,11 @@ export interface CursoRequest {
   anioLectivo: number;
   docenteId: string | null;
 }
+
+export interface EstudianteCurso {
+  estudianteId: string;
+  nombreEstudiante: string;
+  anioLectivo: number;
+  nivel: string;
+  grado: string;
+}

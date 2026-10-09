@@ -1,0 +1,345 @@
+.registro-notas,
+.registro-conducta,
+.registro-evaluaciones {
+  width: min(850px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  box-shadow: 0 24px 64px rgb(15 23 42 / 20%);
+}
+
+.registro-notas {
+  width: min(800px, calc(100% - 32px));
+}
+
+.registro-conducta {
+  width: min(720px, calc(100% - 32px));
+}
+
+.registro-notas::backdrop,
+.registro-conducta::backdrop,
+.registro-evaluaciones::backdrop {
+  background: rgb(15 23 42 / 55%);
+}
+
+.registro-notas h2,
+.registro-conducta h2,
+.registro-evaluaciones h2 {
+  margin: 0 0 var(--espacio-3);
+  color: var(--azul-base);
+  font-size: var(--texto-subtitulo);
+}
+
+.registro-notas > p,
+.registro-conducta > p,
+.registro-evaluaciones > p {
+  line-height: 1.5;
+}
+
+.registro-conducta fieldset,
+.registro-evaluaciones fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.registro-notas__seleccion {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--espacio-4);
+  margin: var(--espacio-6) 0;
+}
+
+.registro-notas__campo,
+.registro-conducta__campo,
+.registro-evaluaciones__campo {
+  display: grid;
+  align-content: start;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.registro-evaluaciones__campo {
+  gap: var(--espacio-3);
+}
+
+.registro-notas__lista {
+  display: grid;
+  gap: var(--espacio-3);
+}
+
+.registro-notas__competencia {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-control);
+  background: var(--color-fondo);
+}
+
+.registro-notas label,
+.registro-conducta label,
+.registro-evaluaciones label {
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.registro-notas select,
+.registro-conducta__campo select,
+.registro-conducta__campo input,
+.registro-conducta__campo textarea,
+.registro-evaluaciones__campo select,
+.registro-evaluaciones__campo input,
+.registro-evaluaciones__campo textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--altura-control);
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.registro-conducta__campo textarea,
+.registro-evaluaciones__campo textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.registro-conducta__campos,
+.registro-evaluaciones__campos {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: var(--espacio-4);
+}
+
+.registro-conducta__campos {
+  margin-bottom: var(--espacio-6);
+}
+
+.registro-evaluaciones__campos {
+  gap: var(--espacio-6);
+}
+
+.registro-evaluaciones__campo--completo,
+.registro-evaluaciones__campo--inicio {
+  grid-column: 1 / -1;
+}
+
+.registro-evaluaciones__subtitulo {
+  grid-column: 1 / -1;
+  margin: var(--espacio-4) 0 0;
+  padding-bottom: var(--espacio-3);
+  border-bottom: 1px solid var(--color-borde);
+  color: var(--azul-base);
+  font-size: 1rem;
+}
+
+.registro-evaluaciones__subtitulo:first-child {
+  margin-top: 0;
+}
+
+.registro-evaluaciones__pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  margin: var(--espacio-6) 0;
+  padding-bottom: var(--espacio-4);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.registro-evaluaciones__pestanas button {
+  min-height: var(--altura-control);
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  color: var(--azul-base);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.registro-evaluaciones__pestanas button:hover:not(:disabled) {
+  background: var(--azul-claro);
+}
+
+.registro-evaluaciones__pestanas button[aria-pressed="true"] {
+  border-color: var(--azul-base);
+  background: var(--azul-base);
+  color: var(--color-superficie);
+}
+
+.registro-notas__acciones,
+.registro-conducta__acciones,
+.registro-evaluaciones__acciones {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+  margin-top: var(--espacio-6);
+}
+
+.registro-notas__boton-secundario,
+.registro-evaluaciones__boton-secundario {
+  min-height: var(--altura-control);
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  color: var(--azul-base);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.registro-notas__boton-secundario:hover:not(:disabled),
+.registro-evaluaciones__boton-secundario:hover:not(:disabled) {
+  background: var(--azul-claro);
+}
+
+.registro-notas button:disabled,
+.registro-conducta button:disabled,
+.registro-evaluaciones button:disabled {
+  cursor: not-allowed;
+}
+
+.registro-notas select:disabled,
+.registro-conducta input:disabled,
+.registro-conducta select:disabled,
+.registro-conducta textarea:disabled,
+.registro-evaluaciones input:disabled,
+.registro-evaluaciones select:disabled,
+.registro-evaluaciones textarea:disabled,
+.registro-evaluaciones__pestanas button:disabled,
+.registro-notas__boton-secundario:disabled,
+.registro-evaluaciones__boton-secundario:disabled {
+  border-color: var(--color-borde);
+  background: var(--color-deshabilitado-fondo);
+  color: var(--color-deshabilitado-texto);
+  cursor: not-allowed;
+}
+
+.registro-notas [role="alert"],
+.registro-notas [role="status"],
+.registro-conducta [role="alert"],
+.registro-conducta [role="status"],
+.registro-evaluaciones [role="alert"],
+.registro-evaluaciones [role="status"] {
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid;
+  border-radius: var(--radio-control);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.registro-notas [role="alert"],
+.registro-conducta [role="alert"],
+.registro-evaluaciones [role="alert"] {
+  border-color: var(--rojo-base);
+  background: var(--rojo-claro);
+  color: var(--rojo-base);
+}
+
+.registro-notas [role="status"],
+.registro-conducta [role="status"],
+.registro-evaluaciones [role="status"] {
+  border-color: var(--azul-base);
+  background: var(--azul-claro);
+  color: var(--azul-base);
+}
+
+.registro-evaluaciones__ayuda {
+  margin: var(--espacio-4) 0;
+  color: var(--color-texto-secundario);
+  line-height: 1.5;
+}
+
+.registro-evaluaciones__pendientes {
+  margin: var(--espacio-4) 0 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--azul-base);
+  border-radius: var(--radio-control);
+  background: var(--azul-claro);
+  color: var(--azul-base);
+  line-height: 1.5;
+}
+
+.registro-evaluaciones__campo [aria-invalid="true"] {
+  border-color: var(--rojo-base);
+}
+
+.registro-evaluaciones > section > .registro-evaluaciones__campo {
+  margin-bottom: var(--espacio-6);
+}
+
+.registro-evaluaciones__campos--notas {
+  grid-template-columns: 1fr;
+  gap: var(--espacio-3);
+}
+
+.registro-evaluaciones__campos--notas > .registro-evaluaciones__campo {
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-control);
+  background: var(--color-fondo);
+}
+
+.registro-evaluaciones__campos--notas label {
+  font-weight: 500;
+}
+
+.registro-evaluaciones__campos--notas select {
+  background: var(--color-superficie);
+}
+
+@media screen and (min-width: 640px) {
+  .registro-notas,
+  .registro-conducta,
+  .registro-evaluaciones {
+    padding: var(--espacio-6);
+  }
+
+  .registro-notas__seleccion {
+    grid-template-columns: minmax(0, 1fr) 140px;
+  }
+
+  .registro-notas__competencia {
+    grid-template-columns: minmax(0, 1fr) 110px;
+  }
+
+  .registro-conducta__campos,
+  .registro-evaluaciones__campos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .registro-evaluaciones__campos--notas {
+    grid-template-columns: 1fr;
+  }
+
+  .registro-evaluaciones__campos--notas > .registro-evaluaciones__campo {
+    grid-template-columns: minmax(0, 1fr) 110px;
+    align-items: center;
+    gap: var(--espacio-6);
+  }
+}
+
+@media print {
+  .registro-notas,
+  .registro-conducta,
+  .registro-evaluaciones {
+    display: none !important;
+  }
+}
