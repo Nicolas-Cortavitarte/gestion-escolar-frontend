@@ -1,11 +1,10 @@
 import type { ResumenFinancieroMes } from "./dashboard.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 export async function obtenerCantidadEstudiantes(
   token: string,
 ): Promise<number> {
-  const respuesta = await fetch(`${API_URL}/api/v1/estudiantes`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/estudiantes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -31,7 +30,7 @@ export async function obtenerCantidadEstudiantes(
 }
 
 export async function obtenerCantidadDocentes(token: string): Promise<number> {
-  const respuesta = await fetch(`${API_URL}/api/v1/docentes`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -67,7 +66,7 @@ export async function obtenerResumenFinancieroMes(
 
   const parametros = new URLSearchParams({ desde, hasta });
 
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/reportes-financieros?${parametros}`,
     {
       headers: {

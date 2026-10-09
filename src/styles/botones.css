@@ -18,17 +18,13 @@
 .boton--principal {
   background: var(--naranja-base);
   border-color: var(--naranja-base);
-  color: var(--color-superficie);
-}
-
-.boton--principal:hover {
-  color: var(--color-superficie); 
-  border-color: var(--naranja-oscuro);
+  color: #fff;
 }
 
 .boton--principal:hover:not(:disabled) {
   background: var(--naranja-oscuro);
   border-color: var(--color-accion-hover);
+  color: var(--color-superficie);
 }
 
 .boton--secundario {

@@ -1,6 +1,5 @@
 import type { Curso, CursoRequest } from "./cursos.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -34,7 +33,7 @@ async function comprobarRespuesta(respuesta: Response): Promise<void> {
 }
 
 export async function obtenerCursos(token: string): Promise<Curso[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/cursos`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/cursos`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -49,7 +48,7 @@ export async function crearCurso(
   token: string,
   datos: CursoRequest,
 ): Promise<Curso> {
-  const respuesta = await fetch(`${API_URL}/api/v1/cursos`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/cursos`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -68,7 +67,7 @@ export async function actualizarCurso(
   id: string,
   datos: CursoRequest,
 ): Promise<Curso> {
-  const respuesta = await fetch(`${API_URL}/api/v1/cursos/${id}`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/cursos/${id}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,

@@ -1,6 +1,7 @@
 import type { LoginResponse } from "../../features/auth/auth.types";
 
 const CLAVE_SESION = "lst.sesion";
+export const EVENTO_SESION_EXPIRADA = "lst:sesion-expirada";
 
 export function vencimientoToken(token: string): number | null {
   try {

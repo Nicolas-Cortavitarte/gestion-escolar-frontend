@@ -1,6 +1,5 @@
 import type { Docente, DocenteRequest, DocenteUpdate } from "./docentes.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -34,7 +33,7 @@ async function comprobarRespuesta(respuesta: Response): Promise<void> {
 }
 
 export async function obtenerDocentes(token: string): Promise<Docente[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/docentes`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -49,7 +48,7 @@ export async function crearDocente(
   token: string,
   datos: DocenteRequest,
 ): Promise<Docente> {
-  const respuesta = await fetch(`${API_URL}/api/v1/docentes`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -68,7 +67,7 @@ export async function actualizarDocente(
   id: string,
   datos: DocenteUpdate,
 ): Promise<Docente> {
-  const respuesta = await fetch(`${API_URL}/api/v1/docentes/${id}`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes/${id}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -89,12 +88,15 @@ export async function cambiarEstadoDocente(
 ): Promise<void> {
   const accion = activo ? "reactivar" : "desactivar";
 
-  const respuesta = await fetch(`${API_URL}/api/v1/docentes/${id}/${accion}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/docentes/${id}/${accion}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     },
-  });
+  );
 
   await comprobarRespuesta(respuesta);
 }

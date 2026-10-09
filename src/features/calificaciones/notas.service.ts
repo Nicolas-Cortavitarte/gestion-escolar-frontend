@@ -3,8 +3,7 @@ import type {
   NotaCompetencia,
   NotaCompetenciaRequest,
 } from "./notas.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -45,7 +44,7 @@ export async function obtenerNotasPorBimestre(
     bimestre: String(bimestre),
   });
 
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/estudiantes/${estudianteId}/notas-competencias?${parametros}`,
     {
       headers: {
@@ -64,7 +63,7 @@ export async function guardarNotaCompetencia(
   estudianteId: string,
   datos: NotaCompetenciaRequest,
 ): Promise<NotaCompetencia> {
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/estudiantes/${estudianteId}/notas-competencias`,
     {
       method: "POST",

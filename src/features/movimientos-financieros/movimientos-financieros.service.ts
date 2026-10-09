@@ -2,8 +2,7 @@ import type {
   MovimientoFinanciero,
   MovimientoFinancieroRequest,
 } from "./movimientos-financieros.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -49,7 +48,7 @@ export async function obtenerMovimientos(
 
   const parametros = new URLSearchParams({ desde, hasta });
 
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/movimientos-financieros?${parametros}`,
     {
       headers: {
@@ -67,7 +66,7 @@ export async function crearMovimiento(
   token: string,
   datos: MovimientoFinancieroRequest,
 ): Promise<MovimientoFinanciero> {
-  const respuesta = await fetch(`${API_URL}/api/v1/movimientos-financieros`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/movimientos-financieros`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -85,7 +84,7 @@ export async function eliminarMovimiento(
   token: string,
   id: string,
 ): Promise<void> {
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/movimientos-financieros/${id}`,
     {
       method: "DELETE",

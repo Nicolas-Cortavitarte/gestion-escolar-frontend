@@ -2,11 +2,10 @@ import type {
   ActualizarEstudianteRequest,
   Estudiante,
 } from "./estudiantes.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 export async function obtenerEstudiantes(token: string): Promise<Estudiante[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/estudiantes`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/estudiantes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -32,7 +31,7 @@ export async function actualizarEstudiante(
   id: string,
   datos: ActualizarEstudianteRequest,
 ): Promise<Estudiante> {
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/estudiantes/${encodeURIComponent(id)}`,
     {
       method: "PUT",

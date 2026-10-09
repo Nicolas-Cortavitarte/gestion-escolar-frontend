@@ -5,14 +5,13 @@ import type {
   CrearMatriculaRequest,
   Matricula,
 } from "./matriculas.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 export async function crearInscripcion(
   token: string,
   datos: InscripcionRequest,
 ): Promise<InscripcionResponse> {
-  const respuesta = await fetch(`${API_URL}/api/v1/inscripciones`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/inscripciones`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -40,7 +39,7 @@ export async function buscarApoderadoPorDni(
   token: string,
   dni: string,
 ): Promise<ApoderadoExistente> {
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/apoderados/${encodeURIComponent(dni)}`,
     {
       headers: {
@@ -64,7 +63,7 @@ export async function crearMatricula(
   token: string,
   datos: CrearMatriculaRequest,
 ): Promise<void> {
-  const respuesta = await fetch(`${API_URL}/api/v1/matriculas`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/matriculas`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -103,7 +102,7 @@ export async function crearMatricula(
 }
 
 export async function obtenerMatriculas(token: string): Promise<Matricula[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/matriculas`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/matriculas`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -128,7 +127,7 @@ export async function pagarMatricula(
   token: string,
   id: string,
 ): Promise<Matricula> {
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/matriculas/${id}/pagar-matricula`,
     {
       method: "PATCH",

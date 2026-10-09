@@ -1,6 +1,5 @@
 import type { Pension } from "./pensiones.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -34,7 +33,7 @@ async function comprobarRespuesta(respuesta: Response): Promise<void> {
 }
 
 export async function obtenerPensiones(token: string): Promise<Pension[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/pensiones`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/pensiones`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -49,7 +48,7 @@ export async function pagarPension(
   token: string,
   id: string,
 ): Promise<Pension> {
-  const respuesta = await fetch(`${API_URL}/api/v1/pensiones/${id}/pagar`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/pensiones/${id}/pagar`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
