@@ -5,8 +5,7 @@ import type {
   ReporteConducta,
   ReporteConductaRequest,
 } from "./registro-boleta.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function solicitar<T>(
   token: string,
@@ -14,7 +13,7 @@ async function solicitar<T>(
   mensajeError: string,
   datos?: ReporteConductaRequest | EvaluacionPadreRequest,
 ): Promise<T> {
-  const respuesta = await fetch(`${API_URL}${ruta}`, {
+  const respuesta = await fetchApi(`${API_URL}${ruta}`, {
     method: datos === undefined ? "GET" : "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -128,7 +127,7 @@ export async function calcularResumenFinal(
     anioLectivo: String(anioLectivo),
   });
 
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/estudiantes/${estudianteId}/resumen-final/calcular?${parametros}`,
     {
       method: "POST",

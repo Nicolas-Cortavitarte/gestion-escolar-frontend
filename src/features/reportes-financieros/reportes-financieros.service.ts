@@ -1,6 +1,5 @@
 import type { ReporteFinanciero } from "./reportes-financieros.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 export async function obtenerReporteFinanciero(
   token: string,
@@ -13,7 +12,7 @@ export async function obtenerReporteFinanciero(
 
   const parametros = new URLSearchParams({ desde, hasta });
 
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/reportes-financieros?${parametros}`,
     {
       headers: {

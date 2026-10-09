@@ -1,6 +1,5 @@
 import type { Competencia, CompetenciaRequest } from "./competencias.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -37,7 +36,7 @@ export async function obtenerCompetenciasPorCurso(
   token: string,
   cursoId: string,
 ): Promise<Competencia[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/competencias`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/competencias`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -54,7 +53,7 @@ export async function crearCompetencia(
   token: string,
   datos: CompetenciaRequest,
 ): Promise<Competencia> {
-  const respuesta = await fetch(`${API_URL}/api/v1/competencias`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/competencias`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -73,7 +72,7 @@ export async function actualizarCompetencia(
   id: string,
   datos: CompetenciaRequest,
 ): Promise<Competencia> {
-  const respuesta = await fetch(`${API_URL}/api/v1/competencias/${id}`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/competencias/${id}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,

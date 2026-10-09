@@ -1,6 +1,5 @@
 import type { PagoDocente } from "./pagos-docentes.types";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL, fetchApi } from "../../shared/api/api";
 
 async function comprobarRespuesta(respuesta: Response): Promise<void> {
   if (respuesta.ok) return;
@@ -36,7 +35,7 @@ async function comprobarRespuesta(respuesta: Response): Promise<void> {
 export async function obtenerPagosDocentes(
   token: string,
 ): Promise<PagoDocente[]> {
-  const respuesta = await fetch(`${API_URL}/api/v1/pagos-docentes`, {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/pagos-docentes`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -51,7 +50,7 @@ export async function pagarDocente(
   token: string,
   id: string,
 ): Promise<PagoDocente> {
-  const respuesta = await fetch(
+  const respuesta = await fetchApi(
     `${API_URL}/api/v1/pagos-docentes/${id}/pagar`,
     {
       method: "PATCH",
