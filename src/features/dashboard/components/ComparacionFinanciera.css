@@ -1,66 +1,104 @@
 .comparacion-financiera {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 1rem;
+  min-width: 0;
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
 }
 
 .comparacion-financiera h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--texto-subtitulo);
 }
 
 .comparacion-financiera > p {
-  margin: 0.35rem 0 1.75rem;
-  color: #617087;
+  margin: var(--espacio-2) 0 var(--espacio-6);
+  color: var(--color-texto-secundario);
+  line-height: 1.5;
+}
+
+.comparacion-financiera .comparacion-financiera__ayuda {
+  font-size: var(--texto-pequeno);
+}
+
+.comparacion-financiera__filas {
+  display: grid;
+  gap: var(--espacio-4);
 }
 
 .comparacion-financiera__fila {
   display: grid;
-  grid-template-columns: 6rem minmax(0, 1fr) 8rem;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1rem;
-  margin-top: 1.25rem;
+  gap: var(--espacio-3);
+  min-width: 0;
 }
 
 .comparacion-financiera__fila strong {
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .comparacion-financiera__pista {
+  grid-column: 1 / -1;
+  display: block;
   height: 1.25rem;
   overflow: hidden;
-  background: #edf2f7;
   border-radius: 999px;
+  background: var(--color-deshabilitado-fondo);
 }
 
 .comparacion-financiera__barra {
+  display: block;
   height: 100%;
   border-radius: inherit;
 }
 
 .comparacion-financiera__barra--ingresos {
-  background: #15945c;
+  background: var(--verde-base);
 }
 
 .comparacion-financiera__barra--egresos {
-  background: #dc5151;
+  background: var(--rojo-base);
 }
 
-@media (max-width: 650px) {
-  .comparacion-financiera__fila {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.5rem;
-  }
+.comparacion-financiera__fila--interactiva {
+  width: 100%;
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
 
-  .comparacion-financiera__pista {
-    grid-column: 1 / -1;
-    grid-row: 2;
+.comparacion-financiera__fila--interactiva:hover {
+  background: var(--color-fondo);
+}
+
+.comparacion-financiera__fila--interactiva[aria-pressed="true"] {
+  border-color: var(--azul-base);
+  background: var(--azul-claro);
+}
+
+.comparacion-financiera .comparacion-financiera__vacio {
+  margin-bottom: 0;
+}
+
+@media (min-width: 640px) {
+  .comparacion-financiera {
+    padding: var(--espacio-6);
+  }
+}
+
+@media (max-width: 360px) {
+  .comparacion-financiera__fila {
+    grid-template-columns: 1fr;
   }
 
   .comparacion-financiera__fila strong {
-    grid-column: 2;
-    grid-row: 1;
+    text-align: left;
   }
 }

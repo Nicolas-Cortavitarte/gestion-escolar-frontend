@@ -1,19 +1,36 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { actualizarEstudiante } from "../estudiantes.service";
 import type { Estudiante } from "../estudiantes.types";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { Boton } from "../../../shared/components/Boton";
+import { useValidacion } from "../../../shared/hooks/useValidacion";
 
 interface EditarEstudianteFormProps {
   token: string;
   estudiante: Estudiante;
+  tituloId: string;
   onActualizado: (estudiante: Estudiante) => void;
   onCancelar: () => void;
+  onGuardando: (guardando: boolean) => void;
+}
+
+function fechaHoy() {
+  const hoy = new Date();
+
+  return [
+    hoy.getFullYear(),
+    String(hoy.getMonth() + 1).padStart(2, "0"),
+    String(hoy.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 export function EditarEstudianteForm({
   token,
   estudiante,
+  tituloId,
   onActualizado,
   onCancelar,
+  onGuardando,
 }: EditarEstudianteFormProps) {
   const [dni, setDni] = useState(estudiante.dni);
   const [nombres, setNombres] = useState(estudiante.nombres);
@@ -25,107 +42,154 @@ export function EditarEstudianteForm({
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
+  const guardandoRef = useRef(false);
+  const validacion = useValidacion();
+
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+
+    if (guardandoRef.current) return;
+
     setError("");
+
+    if (!validacion.validar(evento.currentTarget)) return;
 
     if (!estudiante.apoderadoId) {
       setError("El estudiante no tiene un apoderado asignado.");
       return;
     }
 
+    guardandoRef.current = true;
     setGuardando(true);
+    onGuardando(true);
 
     try {
       const actualizado = await actualizarEstudiante(token, estudiante.id, {
         dni,
-        nombres,
-        apellidos,
+        nombres: nombres.trim(),
+        apellidos: apellidos.trim(),
         fechaNacimiento,
-        direccion,
+        direccion: direccion.trim(),
         idApoderado: estudiante.apoderadoId,
       });
 
       onActualizado(actualizado);
-    } catch (fallo) {
+    } catch (fallo: unknown) {
       setError(
         fallo instanceof Error
           ? fallo.message
-          : "Ocurrió un error al editar el estudiante.",
+          : "No se pudieron guardar los cambios. Inténtalo nuevamente.",
       );
     } finally {
+      guardandoRef.current = false;
       setGuardando(false);
+      onGuardando(false);
     }
   }
 
   return (
-    <form onSubmit={guardar}>
-      <h2>Editar estudiante</h2>
+    <form
+      onSubmit={guardar}
+      {...validacion.eventos}
+      noValidate
+      aria-busy={guardando}
+    >
+      <h2 id={tituloId}>Editar estudiante</h2>
 
-      <label htmlFor="editar-dni">DNI</label>
-      <input
+      <CampoEntrada
         id="editar-dni"
+        name="dni"
+        etiqueta="DNI"
         value={dni}
-        onChange={(evento) =>
-          setDni(evento.target.value.replace(/\D/g, "").slice(0, 8))
-        }
+        onChange={(evento) => {
+          setDni(evento.target.value.replace(/\D/g, "").slice(0, 8));
+          setError("");
+        }}
         inputMode="numeric"
         pattern="[0-9]{8}"
+        data-mensaje-patron="El DNI debe tener 8 dígitos."
         maxLength={8}
+        ayuda="Ingresa los 8 dígitos del DNI."
+        error={validacion.errores["editar-dni"]}
+        disabled={guardando}
         required
       />
 
-      <label htmlFor="editar-nombres">Nombres</label>
-      <input
+      <CampoEntrada
         id="editar-nombres"
+        name="nombres"
+        etiqueta="Nombres"
         value={nombres}
-        onChange={(evento) => setNombres(evento.target.value)}
+        onChange={(evento) => {
+          setNombres(evento.target.value);
+          setError("");
+        }}
+        error={validacion.errores["editar-nombres"]}
+        disabled={guardando}
         required
       />
 
-      <label htmlFor="editar-apellidos">Apellidos</label>
-      <input
+      <CampoEntrada
         id="editar-apellidos"
+        name="apellidos"
+        etiqueta="Apellidos"
         value={apellidos}
-        onChange={(evento) => setApellidos(evento.target.value)}
+        onChange={(evento) => {
+          setApellidos(evento.target.value);
+          setError("");
+        }}
+        error={validacion.errores["editar-apellidos"]}
+        disabled={guardando}
         required
       />
 
-      <label htmlFor="editar-fecha">Fecha de nacimiento</label>
-      <input
+      <CampoEntrada
         id="editar-fecha"
+        name="fechaNacimiento"
+        etiqueta="Fecha de nacimiento"
         type="date"
+        max={fechaHoy()}
         value={fechaNacimiento}
-        onChange={(evento) => setFechaNacimiento(evento.target.value)}
+        onChange={(evento) => {
+          setFechaNacimiento(evento.target.value);
+          setError("");
+        }}
+        error={validacion.errores["editar-fecha"]}
+        disabled={guardando}
         required
       />
 
-      <label htmlFor="editar-direccion">Dirección</label>
-      <input
+      <CampoEntrada
         id="editar-direccion"
+        name="direccion"
+        etiqueta="Dirección (opcional)"
         value={direccion}
-        onChange={(evento) => setDireccion(evento.target.value)}
+        onChange={(evento) => {
+          setDireccion(evento.target.value);
+          setError("");
+        }}
+        disabled={guardando}
       />
 
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p className="estudiantes-page__error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="estudiantes-page__modal-actions">
-        <button
-          className="estudiantes-page__cancelar"
-          type="button"
-          onClick={onCancelar}
-          disabled={guardando}
-        >
+        <Boton onClick={onCancelar} disabled={guardando}>
           Cancelar
-        </button>
+        </Boton>
 
-        <button
-          className="estudiantes-page__guardar"
+        <Boton
           type="submit"
-          disabled={guardando}
+          variante="principal"
+          cargando={guardando}
+          textoCargando="Guardando..."
         >
-          {guardando ? "Guardando..." : "Guardar cambios"}
-        </button>
+          Guardar cambios
+        </Boton>
       </div>
     </form>
   );

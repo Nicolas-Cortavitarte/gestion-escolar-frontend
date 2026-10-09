@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { iniciarSesion } from "../auth.service";
 import type { LoginResponse } from "../auth.types";
 import "./LoginPage.css";
@@ -12,18 +14,63 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [tocados, setTocados] = useState({
+    correo: false,
+    contrasena: false,
+  });
+  const [mostrarContrasena, setMostrarContrasena] = useState(false);
+
+  function validarCorreo(valor: string) {
+    if (!valor.trim()) return "Ingresa tu correo electrónico.";
+
+    if (!/^[^\s@]+@[^\s@]+$/.test(valor.trim())) {
+      return "Ingresa un correo electrónico válido.";
+    }
+
+    return "";
+  }
+
+  function validarContrasena(valor: string) {
+    return valor.length === 0 ? "Ingresa tu contraseña." : "";
+  }
+
+  const errorCorreo = validarCorreo(correo);
+  const errorContrasena = validarContrasena(contrasena);
 
   async function manejarEnvio(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+
+    if (cargando) return;
+
+    setTocados({ correo: true, contrasena: true });
     setError("");
+
+    if (errorCorreo || errorContrasena) {
+      const formulario = evento.currentTarget;
+      const campoId = errorCorreo ? "correo" : "contrasena";
+
+      formulario.querySelector<HTMLInputElement>(`#${campoId}`)?.focus();
+      return;
+    }
+
+    const formulario = evento.currentTarget;
+
+    if (!formulario.reportValidity()) return;
+
     setCargando(true);
 
     try {
-      const sesion = await iniciarSesion({ correo, contrasena });
+      const sesion = await iniciarSesion({
+        correo: correo.trim(),
+        contrasena,
+      });
+
       onLogin(sesion);
-    } catch (fallo) {
+    } catch (fallo: unknown) {
       setError(
-        fallo instanceof Error ? fallo.message : "Ocurrió un error inesperado",
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo iniciar sesión. Inténtalo nuevamente.",
       );
     } finally {
       setCargando(false);
@@ -53,31 +100,81 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             Ingresa tus credenciales para continuar.
           </p>
 
-          <form className="login-page__formulario" onSubmit={manejarEnvio}>
-            <div className="login-page__campo">
-              <label htmlFor="correo">Correo electrónico</label>
-              <input
-                id="correo"
-                type="email"
-                value={correo}
-                onChange={(evento) => setCorreo(evento.target.value)}
-                placeholder="nombre@ejemplo.com"
-                autoComplete="username"
-                required
-              />
-            </div>
+          <form
+            className="login-page__formulario"
+            onSubmit={manejarEnvio}
+            noValidate
+            aria-busy={cargando}
+          >
+            <CampoEntrada
+              id="correo"
+              name="correo"
+              etiqueta="Correo electrónico"
+              type="email"
+              value={correo}
+              onChange={(evento) => {
+                setCorreo(evento.target.value);
+                setError("");
+              }}
+              onBlur={() => {
+                setTocados((actuales) => ({ ...actuales, correo: true }));
+              }}
+              error={tocados.correo ? errorCorreo : ""}
+              placeholder="nombre@ejemplo.com"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              disabled={cargando}
+              required
+            />
 
-            <div className="login-page__campo">
-              <label htmlFor="contrasena">Contraseña</label>
-              <input
+            <div className="login-page__contrasena">
+              <CampoEntrada
                 id="contrasena"
-                type="password"
+                etiqueta="Contraseña"
+                type={mostrarContrasena ? "text" : "password"}
                 value={contrasena}
                 onChange={(evento) => setContrasena(evento.target.value)}
                 placeholder="Ingresa tu contraseña"
                 autoComplete="current-password"
+                disabled={cargando}
                 required
               />
+
+              <button
+                type="button"
+                className="login-page__ver-contrasena"
+                onClick={() => setMostrarContrasena((actual) => !actual)}
+                aria-label={
+                  mostrarContrasena
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
+                }
+                aria-controls="contrasena"
+                title={
+                  mostrarContrasena
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
+                }
+                disabled={cargando}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                  {mostrarContrasena && <path d="m3 3 18 18" />}
+                </svg>
+              </button>
             </div>
 
             {error && (
@@ -86,13 +183,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </p>
             )}
 
-            <button
-              className="login-page__boton"
+            <Boton
               type="submit"
-              disabled={cargando}
+              variante="principal"
+              cargando={cargando}
+              textoCargando="Ingresando..."
             >
-              {cargando ? "Ingresando..." : "Iniciar sesión"}
-            </button>
+              Iniciar sesión
+            </Boton>
           </form>
         </div>
       </section>

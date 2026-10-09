@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import {
   obtenerMovimientos,
   eliminarMovimiento,
@@ -8,11 +9,18 @@ import type {
   CategoriaMovimiento,
 } from "../movimientos-financieros.types";
 import { MovimientoModal } from "../components/MovimientoModal";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { BadgeEstado } from "../../../shared/components/BadgeEstado";
+import { Paginacion } from "../../../shared/components/Paginacion";
+import "../../../styles/listados.css";
 import "./MovimientosFinancierosPage.css";
 
 interface MovimientosFinancierosPageProps {
   token: string;
 }
+
+const POR_PAGINA = 10;
 
 const categorias: Record<CategoriaMovimiento, string> = {
   MATERIALES: "Materiales",
@@ -27,6 +35,17 @@ const moneda = new Intl.NumberFormat("es-PE", {
   style: "currency",
   currency: "PEN",
 });
+
+function normalizar(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es");
+}
+
+function mostrarFecha(fecha: string) {
+  return fecha.split("-").reverse().join("/");
+}
 
 function rangoMesActual() {
   const partes = new Intl.DateTimeFormat("en-US", {
@@ -53,17 +72,17 @@ export function MovimientosFinancierosPage({
   const [hasta, setHasta] = useState(rango.hasta);
   const [movimientos, setMovimientos] = useState<MovimientoFinanciero[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [intentoCarga, setIntentoCarga] = useState(0);
   const [error, setError] = useState("");
   const [errorFechas, setErrorFechas] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [tipo, setTipo] = useState("");
   const [categoria, setCategoria] = useState("");
+  const [pagina, setPagina] = useState(1);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [movimientoEliminar, setMovimientoEliminar] =
     useState<MovimientoFinanciero | null>(null);
-  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
-  const [errorEliminar, setErrorEliminar] = useState("");
 
   useEffect(() => {
     let activo = true;
@@ -91,143 +110,170 @@ export function MovimientosFinancierosPage({
     return () => {
       activo = false;
     };
-  }, [token, rango]);
+  }, [token, rango, intentoCarga]);
 
-  function consultar(evento: React.FormEvent<HTMLFormElement>) {
+  function consultar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (cargando) return;
 
     if (!desde || !hasta || desde > hasta) {
-      setErrorFechas("La fecha inicial debe ser anterior o igual a la final.");
+      setErrorFechas(
+        "Selecciona ambas fechas. Desde debe ser anterior o igual a Hasta.",
+      );
       return;
     }
 
+    if (!evento.currentTarget.reportValidity()) return;
+
     setErrorFechas("");
     setError("");
+    setMensaje("");
     setCargando(true);
-    setMovimientos([]);
+    setPagina(1);
     setRango({ desde, hasta });
   }
 
-  const termino = busqueda.trim().toLocaleLowerCase("es");
+  function reintentar() {
+    setError("");
+    setCargando(true);
+    setIntentoCarga((actual) => actual + 1);
+  }
+
+  function limpiarFiltros() {
+    setBusqueda("");
+    setTipo("");
+    setCategoria("");
+    setPagina(1);
+  }
+
+  const termino = normalizar(busqueda.trim());
 
   const filtrados = movimientos
     .filter(
       (movimiento) =>
         (tipo === "" || movimiento.tipo === tipo) &&
         (categoria === "" || movimiento.categoria === categoria) &&
-        movimiento.concepto.toLocaleLowerCase("es").includes(termino),
+        normalizar(movimiento.concepto).includes(termino),
     )
     .sort(
       (a, b) =>
-        b.fecha.localeCompare(a.fecha) || b.creadoEn.localeCompare(a.creadoEn),
+        b.fecha.localeCompare(a.fecha) ||
+        b.creadoEn.localeCompare(a.creadoEn) ||
+        a.id.localeCompare(b.id),
     );
 
-  async function confirmarEliminacion(movimiento: MovimientoFinanciero) {
-    if (eliminandoId !== null) return;
+  const paginaActual = Math.min(
+    pagina,
+    Math.max(1, Math.ceil(filtrados.length / POR_PAGINA)),
+  );
 
-    setEliminandoId(movimiento.id);
-    setMensaje("");
-    setErrorEliminar("");
-
-    try {
-      await eliminarMovimiento(token, movimiento.id);
-
-      setMovimientos((actuales) =>
-        actuales.filter((item) => item.id !== movimiento.id),
-      );
-
-      setMensaje("Movimiento eliminado correctamente.");
-    } catch (fallo: unknown) {
-      setErrorEliminar(
-        fallo instanceof Error
-          ? fallo.message
-          : "No se pudo eliminar el movimiento.",
-      );
-    } finally {
-      setEliminandoId(null);
-    }
-  }
+  const visibles = filtrados.slice(
+    (paginaActual - 1) * POR_PAGINA,
+    paginaActual * POR_PAGINA,
+  );
 
   return (
     <section className="movimientos">
       <header className="movimientos__encabezado">
-        <h1>Movimientos financieros</h1>
-        <p>Registra y consulta otros ingresos y egresos del colegio.</p>
+        <div>
+          <h1>Movimientos financieros</h1>
+          <p>
+            Registra otros ingresos y egresos del colegio. Las pensiones,
+            matrículas y pagos a docentes se consultan en sus apartados.
+          </p>
+        </div>
+
+        <Boton
+          variante="principal"
+          disabled={cargando || Boolean(error)}
+          onClick={() => {
+            setMensaje("");
+            setMostrarModal(true);
+          }}
+        >
+          Nuevo movimiento
+        </Boton>
       </header>
 
-      <button
-        type="button"
-        className="movimientos__boton movimientos__nuevo"
-        disabled={cargando || eliminandoId !== null}
-        onClick={() => {
-          setMensaje("");
-          setMostrarModal(true);
-        }}
-      >
-        Nuevo movimiento
-      </button>
+      {mensaje && (
+        <p role="status" className="movimientos__exito">
+          {mensaje}
+        </p>
+      )}
 
-      {mensaje && <p role="status">{mensaje}</p>}
+      <form className="movimientos__fechas" onSubmit={consultar} noValidate>
+        <CampoEntrada
+          id="movimientos-desde"
+          etiqueta="Desde"
+          type="date"
+          value={desde}
+          onChange={(evento) => {
+            setDesde(evento.target.value);
+            setErrorFechas("");
+          }}
+          disabled={cargando}
+          required
+        />
 
-      {errorEliminar && <p role="alert">{errorEliminar}</p>}
+        <CampoEntrada
+          id="movimientos-hasta"
+          etiqueta="Hasta"
+          type="date"
+          value={hasta}
+          onChange={(evento) => {
+            setHasta(evento.target.value);
+            setErrorFechas("");
+          }}
+          min={desde || undefined}
+          error={errorFechas}
+          disabled={cargando}
+          required
+        />
 
-      <form className="movimientos__fechas" onSubmit={consultar}>
-        <div className="movimientos__campo">
-          <label htmlFor="movimientos-desde">Desde</label>
-          <input
-            id="movimientos-desde"
-            type="date"
-            value={desde}
-            onChange={(evento) => setDesde(evento.target.value)}
-            required
-          />
-        </div>
-
-        <div className="movimientos__campo">
-          <label htmlFor="movimientos-hasta">Hasta</label>
-          <input
-            id="movimientos-hasta"
-            type="date"
-            value={hasta}
-            onChange={(evento) => setHasta(evento.target.value)}
-            min={desde || undefined}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="movimientos__boton"
-          disabled={cargando || eliminandoId !== null}
-        >
+        <Boton type="submit" disabled={cargando}>
           {cargando ? "Consultando..." : "Consultar"}
-        </button>
+        </Boton>
       </form>
 
-      {errorFechas && <p role="alert">{errorFechas}</p>}
       {cargando && <p role="status">Cargando movimientos...</p>}
-      {error && <p role="alert">{error}</p>}
+
+      {!cargando && error && (
+        <div className="estado-listado">
+          <p role="alert">{error}</p>
+          <Boton onClick={reintentar}>Reintentar</Boton>
+        </div>
+      )}
 
       {!cargando && !error && (
         <>
-          <div className="movimientos__filtros">
-            <div className="movimientos__campo">
-              <label htmlFor="movimientos-busqueda">Buscar concepto</label>
-              <input
-                id="movimientos-busqueda"
-                type="search"
-                value={busqueda}
-                onChange={(evento) => setBusqueda(evento.target.value)}
-                placeholder="Concepto del movimiento"
-              />
-            </div>
+          <p className="movimientos__periodo">
+            Movimientos del {mostrarFecha(rango.desde)} al{" "}
+            {mostrarFecha(rango.hasta)}.
+          </p>
 
-            <div className="movimientos__campo">
+          <div className="movimientos__filtros">
+            <CampoEntrada
+              id="movimientos-busqueda"
+              etiqueta="Buscar concepto"
+              type="search"
+              value={busqueda}
+              onChange={(evento) => {
+                setBusqueda(evento.target.value);
+                setPagina(1);
+              }}
+              placeholder="Concepto del movimiento"
+            />
+
+            <div className="campo">
               <label htmlFor="movimientos-tipo">Tipo</label>
               <select
                 id="movimientos-tipo"
+                className="campo__entrada"
                 value={tipo}
-                onChange={(evento) => setTipo(evento.target.value)}
+                onChange={(evento) => {
+                  setTipo(evento.target.value);
+                  setPagina(1);
+                }}
               >
                 <option value="">Todos</option>
                 <option value="INGRESO">Ingreso</option>
@@ -235,12 +281,16 @@ export function MovimientosFinancierosPage({
               </select>
             </div>
 
-            <div className="movimientos__campo">
+            <div className="campo">
               <label htmlFor="movimientos-categoria">Categoría</label>
               <select
                 id="movimientos-categoria"
+                className="campo__entrada"
                 value={categoria}
-                onChange={(evento) => setCategoria(evento.target.value)}
+                onChange={(evento) => {
+                  setCategoria(evento.target.value);
+                  setPagina(1);
+                }}
               >
                 <option value="">Todas</option>
                 {Object.entries(categorias).map(([valor, nombre]) => (
@@ -252,68 +302,99 @@ export function MovimientosFinancierosPage({
             </div>
           </div>
 
-          {filtrados.length === 0 ? (
-            <p>No hay movimientos que coincidan con los filtros.</p>
-          ) : (
-            <div
-              className="movimientos__tabla-contenedor"
-              role="region"
-              aria-label="Listado de movimientos financieros"
-              tabIndex={0}
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Fecha</th>
-                    <th scope="col">Concepto</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col">Categoría</th>
-                    <th scope="col">Monto</th>
-                    <th scope="col">Registrado por</th>
-                    <th scope="col">Acciones</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filtrados.map((movimiento) => (
-                    <tr key={movimiento.id}>
-                      <td>{movimiento.fecha.split("-").reverse().join("/")}</td>
-                      <td>{movimiento.concepto}</td>
-                      <td>
-                        <span
-                          className={`movimientos__tipo movimientos__tipo--${movimiento.tipo.toLowerCase()}`}
-                        >
-                          {movimiento.tipo === "INGRESO" ? "Ingreso" : "Egreso"}
-                        </span>
-                      </td>
-                      <td>{categorias[movimiento.categoria]}</td>
-                      <td>{moneda.format(movimiento.monto)}</td>
-                      <td>{movimiento.registradoPorEmail}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="movimientos__boton-eliminar"
-                          disabled={eliminandoId !== null}
-                          onClick={() => {
-                            setMensaje("");
-                            setErrorEliminar("");
-                            setMovimientoEliminar(movimiento);
-                          }}
-                          aria-label={`Eliminar movimiento: ${movimiento.concepto}`}
-                        >
-                          {eliminandoId === movimiento.id
-                            ? "Eliminando..."
-                            : "Eliminar"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {movimientos.length === 0 ? (
+            <div className="estado-listado">
+              <h2>No hay movimientos en este periodo</h2>
+              <p>
+                Consulta otro rango de fechas o registra un nuevo movimiento.
+              </p>
             </div>
+          ) : filtrados.length === 0 ? (
+            <div className="estado-listado">
+              <h2>No encontramos coincidencias</h2>
+              <p>Prueba con otro concepto o limpia los filtros.</p>
+              <Boton onClick={limpiarFiltros}>Limpiar filtros</Boton>
+            </div>
+          ) : (
+            <>
+              <div
+                className="tabla-listado"
+                role="region"
+                aria-label="Listado de movimientos financieros"
+                tabIndex={0}
+              >
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Fecha</th>
+                      <th scope="col">Concepto</th>
+                      <th scope="col">Tipo</th>
+                      <th scope="col">Categoría</th>
+                      <th scope="col">Monto</th>
+                      <th scope="col">Registrado por</th>
+                      <th scope="col">Acciones</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {visibles.map((movimiento) => (
+                      <tr key={movimiento.id}>
+                        <td data-label="Fecha">
+                          {mostrarFecha(movimiento.fecha)}
+                        </td>
+                        <td data-label="Concepto">{movimiento.concepto}</td>
+                        <td data-label="Tipo">
+                          <span>
+                            <BadgeEstado
+                              variante={
+                                movimiento.tipo === "INGRESO"
+                                  ? "pendiente"
+                                  : "neutro"
+                              }
+                            >
+                              {movimiento.tipo === "INGRESO"
+                                ? "Ingreso"
+                                : "Egreso"}
+                            </BadgeEstado>
+                          </span>
+                        </td>
+                        <td data-label="Categoría">
+                          {categorias[movimiento.categoria]}
+                        </td>
+                        <td data-label="Monto">
+                          {moneda.format(movimiento.monto)}
+                        </td>
+                        <td data-label="Registrado por">
+                          {movimiento.registradoPorEmail ?? "No disponible"}
+                        </td>
+                        <td data-label="Acciones">
+                          <Boton
+                            onClick={() => {
+                              setMensaje("");
+                              setMovimientoEliminar(movimiento);
+                            }}
+                            aria-label={`Eliminar movimiento: ${movimiento.concepto}`}
+                          >
+                            Eliminar
+                          </Boton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Paginacion
+                pagina={paginaActual}
+                total={filtrados.length}
+                porPagina={POR_PAGINA}
+                onCambiar={setPagina}
+              />
+            </>
           )}
         </>
       )}
+
       {mostrarModal && (
         <MovimientoModal
           token={token}
@@ -324,28 +405,30 @@ export function MovimientosFinancierosPage({
 
             if (dentroDelRango) {
               setMovimientos((actuales) => [...actuales, creado]);
-              setBusqueda("");
-              setTipo("");
-              setCategoria("");
+              limpiarFiltros();
             }
 
             setMostrarModal(false);
             setMensaje(
               dentroDelRango
                 ? "Movimiento registrado correctamente."
-                : "Movimiento registrado correctamente. Su fecha está fuera del rango consultado; cambia las fechas para verlo.",
+                : "Movimiento registrado correctamente. Su fecha está fuera del periodo consultado; cambia las fechas para verlo.",
             );
           }}
         />
       )}
+
       {movimientoEliminar && (
         <EliminarMovimientoModal
+          token={token}
           movimiento={movimientoEliminar}
           onCancelar={() => setMovimientoEliminar(null)}
-          onConfirmar={() => {
-            const seleccionado = movimientoEliminar;
+          onEliminado={() => {
+            setMovimientos((actuales) =>
+              actuales.filter((item) => item.id !== movimientoEliminar.id),
+            );
             setMovimientoEliminar(null);
-            void confirmarEliminacion(seleccionado);
+            setMensaje("Movimiento eliminado correctamente.");
           }}
         />
       )}
@@ -354,73 +437,129 @@ export function MovimientosFinancierosPage({
 }
 
 interface EliminarMovimientoModalProps {
+  token: string;
   movimiento: MovimientoFinanciero;
   onCancelar: () => void;
-  onConfirmar: () => void;
+  onEliminado: () => void;
 }
 
 function EliminarMovimientoModal({
+  token,
   movimiento,
   onCancelar,
-  onConfirmar,
+  onEliminado,
 }: EliminarMovimientoModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const eliminandoRef = useRef(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [error, setError] = useState("");
+  const id = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    dialog.showModal();
+    const elementoAnterior =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    if (!dialog.open) dialog.showModal();
 
     return () => {
       dialog.close();
+
+      if (elementoAnterior?.isConnected) {
+        elementoAnterior.focus();
+      } else {
+        document.getElementById("movimientos-busqueda")?.focus();
+      }
     };
   }, []);
+
+  function cancelar() {
+    if (!eliminandoRef.current) onCancelar();
+  }
+
+  async function confirmar() {
+    if (eliminandoRef.current) return;
+
+    eliminandoRef.current = true;
+    setEliminando(true);
+    setError("");
+
+    try {
+      await eliminarMovimiento(token, movimiento.id);
+      onEliminado();
+    } catch (fallo: unknown) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo eliminar el movimiento. Inténtalo nuevamente.",
+      );
+    } finally {
+      eliminandoRef.current = false;
+      setEliminando(false);
+    }
+  }
 
   return (
     <dialog
       ref={dialogRef}
       className="movimientos__modal movimientos__modal--confirmacion"
-      aria-labelledby="eliminar-movimiento-titulo"
-      aria-describedby="eliminar-movimiento-descripcion"
+      aria-labelledby={`${id}-titulo`}
+      aria-describedby={`${id}-descripcion`}
+      aria-busy={eliminando}
       onCancel={(evento) => {
         evento.preventDefault();
-        onCancelar();
+        cancelar();
       }}
     >
-      <h2 id="eliminar-movimiento-titulo">Eliminar movimiento</h2>
+      <h2 id={`${id}-titulo`}>Eliminar movimiento</h2>
 
-      <p>
-        <strong>{movimiento.concepto}</strong>
-      </p>
+      <dl className="movimientos__detalle">
+        <div>
+          <dt>Concepto</dt>
+          <dd>{movimiento.concepto}</dd>
+        </div>
+        <div>
+          <dt>Fecha</dt>
+          <dd>{mostrarFecha(movimiento.fecha)}</dd>
+        </div>
+        <div>
+          <dt>Tipo</dt>
+          <dd>{movimiento.tipo === "INGRESO" ? "Ingreso" : "Egreso"}</dd>
+        </div>
+        <div>
+          <dt>Monto</dt>
+          <dd>{moneda.format(movimiento.monto)}</dd>
+        </div>
+      </dl>
 
-      <p>
-        {movimiento.tipo === "INGRESO" ? "Ingreso" : "Egreso"} de{" "}
-        <strong>{moneda.format(movimiento.monto)}</strong>
-      </p>
-
-      <p id="eliminar-movimiento-descripcion">
+      <p id={`${id}-descripcion`}>
         Se eliminará permanentemente este registro y su importe dejará de
         contabilizarse en el reporte financiero.
       </p>
 
-      <div className="movimientos__acciones">
-        <button
-          type="button"
-          className="movimientos__boton-secundario"
-          onClick={onCancelar}
-          autoFocus
-        >
-          Cancelar
-        </button>
+      {error && (
+        <p role="alert" className="movimientos__error">
+          {error}
+        </p>
+      )}
 
-        <button
-          type="button"
+      <div className="movimientos__acciones">
+        <Boton onClick={cancelar} disabled={eliminando} autoFocus>
+          Cancelar
+        </Boton>
+
+        <Boton
           className="movimientos__boton-eliminar"
-          onClick={onConfirmar}
+          cargando={eliminando}
+          textoCargando="Eliminando..."
+          onClick={() => void confirmar()}
         >
           Eliminar movimiento
-        </button>
+        </Boton>
       </div>
     </dialog>
   );

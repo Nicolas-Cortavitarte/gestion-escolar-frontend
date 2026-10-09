@@ -81,58 +81,86 @@
   color: #617087;
 }
 
-.login-page__formulario,
-.login-page__campo {
-  display: grid;
-  gap: 0.75rem;
-}
-
 .login-page__formulario {
-  gap: 1.5rem;
-}
-
-.login-page__campo label {
-  font-weight: 600;
-}
-
-.login-page__campo input {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  color: #101b32;
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.75rem;
-}
-
-.login-page__campo input:focus-visible {
-  outline: 3px solid #9bb9eb;
-  outline-offset: 2px;
+  display: grid;
+  gap: var(--espacio-6);
 }
 
 .login-page__error {
   margin: 0;
-  color: #a32929;
+  padding: var(--espacio-3);
+  border: 1px solid var(--rojo-base);
+  border-radius: var(--radio-control);
+  color: var(--rojo-base);
+  background: var(--rojo-claro);
 }
 
-.login-page__boton {
-  width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.95rem 1rem;
-  color: #fff;
-  font-weight: 700;
-  background: #f47716;
+.login-page__contrasena {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.login-page__contrasena > .campo {
+  display: contents;
+}
+
+.login-page__contrasena .campo > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.login-page__contrasena .campo__entrada {
+  grid-column: 1;
+  grid-row: 2;
+  padding-right: 3.5rem;
+}
+
+.login-page__contrasena .campo__error {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.login-page__ver-contrasena {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
+  justify-self: end;
+  z-index: 1;
+
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 2px 0 0;
+  padding: 0;
+
   border: 0;
-  border-radius: 0.75rem;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--color-texto-secundario);
   cursor: pointer;
 }
 
-.login-page__boton:hover {
-  background: #dc6408;
+.login-page__ver-contrasena:hover:not(:disabled) {
+  background: var(--azul-claro);
+  color: var(--azul-base);
 }
 
-.login-page__boton:disabled {
-  opacity: 0.65;
-  cursor: wait;
+.login-page__ver-contrasena:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -3px;
+}
+
+.login-page__ver-contrasena:disabled {
+  color: var(--color-deshabilitado-texto);
+  cursor: not-allowed;
+}
+
+.login-page__ver-contrasena svg {
+  width: 22px;
+  height: 22px;
 }
 
 @media (max-width: 760px) {
@@ -182,10 +210,5 @@
 
   .login-page__descripcion {
     margin-bottom: 2rem;
-  }
-
-  .login-page__campo input,
-  .login-page__boton {
-    min-height: 3.25rem;
   }
 }

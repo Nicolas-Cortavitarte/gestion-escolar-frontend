@@ -1,11 +1,18 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { obtenerPagosDocentes, pagarDocente } from "../pagos-docentes.service";
 import type { PagoDocente } from "../pagos-docentes.types";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { BadgeEstado } from "../../../shared/components/BadgeEstado";
+import { Paginacion } from "../../../shared/components/Paginacion";
+import "../../../styles/listados.css";
 import "./PagosDocentesPage.css";
 
 interface PagosDocentesPageProps {
   token: string;
 }
+
+const POR_PAGINA = 10;
 
 const meses = [
   "Enero",
@@ -33,20 +40,41 @@ const moneda = new Intl.NumberFormat("es-PE", {
   currency: "PEN",
 });
 
+const fechaPago = new Intl.DateTimeFormat("es-PE", {
+  timeZone: "America/Lima",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+function normalizar(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .trim();
+}
+
 export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
   const [pagos, setPagos] = useState<PagoDocente[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [intento, setIntento] = useState(0);
+
   const [busqueda, setBusqueda] = useState("");
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
   const [mes, setMes] = useState(String(new Date().getMonth() + 1));
   const [estado, setEstado] = useState("");
+  const [pagina, setPagina] = useState(1);
+
   const [pagoSeleccionado, setPagoSeleccionado] = useState<PagoDocente | null>(
     null,
   );
-  const [pagandoId, setPagandoId] = useState<string | null>(null);
+  const [pagando, setPagando] = useState(false);
   const [mensajePago, setMensajePago] = useState("");
   const [errorPago, setErrorPago] = useState("");
+
+  const pagandoRef = useRef(false);
 
   useEffect(() => {
     let activo = true;
@@ -54,13 +82,11 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
     obtenerPagosDocentes(token)
       .then((datos) => {
         if (!activo) return;
-
         setPagos(datos);
         setError("");
       })
       .catch((fallo: unknown) => {
         if (!activo) return;
-
         setError(
           fallo instanceof Error
             ? fallo.message
@@ -74,13 +100,13 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
     return () => {
       activo = false;
     };
-  }, [token]);
+  }, [token, intento]);
 
   const anios = Array.from(
     new Set([new Date().getFullYear(), ...pagos.map((pago) => pago.anio)]),
   ).sort((a, b) => b - a);
 
-  const termino = busqueda.trim().toLocaleLowerCase("es");
+  const termino = normalizar(busqueda);
 
   const filtrados = pagos
     .filter(
@@ -88,22 +114,46 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
         pago.anio === Number(anio) &&
         (mes === "" || pago.mes === Number(mes)) &&
         (estado === "" || pago.estado === estado) &&
-        pago.nombresDocente.toLocaleLowerCase("es").includes(termino),
+        normalizar(pago.nombresDocente).includes(termino),
     )
     .sort(
       (a, b) =>
-        a.nombresDocente.localeCompare(b.nombresDocente, "es") || a.mes - b.mes,
+        a.nombresDocente.localeCompare(b.nombresDocente, "es") ||
+        a.mes - b.mes ||
+        a.id.localeCompare(b.id),
     );
 
-  async function registrarPago(pago: PagoDocente) {
-    if (pagandoId !== null || pago.estado === "PAGADO") return;
+  const paginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, paginas);
+  const visibles = filtrados.slice(
+    (paginaActual - 1) * POR_PAGINA,
+    paginaActual * POR_PAGINA,
+  );
 
-    setPagandoId(pago.id);
-    setMensajePago("");
+  function cerrarPago() {
+    if (pagandoRef.current) return;
+
+    setPagoSeleccionado(null);
+    setErrorPago("");
+  }
+
+  async function registrarPago() {
+    const seleccionado = pagoSeleccionado;
+
+    if (
+      !seleccionado ||
+      seleccionado.estado === "PAGADO" ||
+      pagandoRef.current
+    ) {
+      return;
+    }
+
+    pagandoRef.current = true;
+    setPagando(true);
     setErrorPago("");
 
     try {
-      const actualizado = await pagarDocente(token, pago.id);
+      const actualizado = await pagarDocente(token, seleccionado.id);
 
       setPagos((actuales) =>
         actuales.map((item) =>
@@ -111,17 +161,21 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
         ),
       );
 
+      setPagoSeleccionado(null);
       setMensajePago(
-        `Pago de ${meses[pago.mes - 1]} registrado para ${pago.nombresDocente}.`,
+        `Pago de ${meses[seleccionado.mes - 1]} registrado para ${
+          seleccionado.nombresDocente
+        }.`,
       );
     } catch (fallo: unknown) {
       setErrorPago(
         fallo instanceof Error
           ? fallo.message
-          : "No se pudo registrar el pago.",
+          : "No se pudo registrar el pago. Inténtalo nuevamente.",
       );
     } finally {
-      setPagandoId(null);
+      pagandoRef.current = false;
+      setPagando(false);
     }
   }
 
@@ -129,16 +183,25 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
     <section className="pagos-docentes">
       <header className="pagos-docentes__encabezado">
         <h1>Pagos a docentes</h1>
-        <p>Consulta los pagos programados y su estado.</p>
+        <p>
+          Consulta los pagos programados y registra los importes entregados.
+        </p>
       </header>
 
       <div className="pagos-docentes__filtros">
-        <div className="pagos-docentes__campo">
-          <label htmlFor="pagos-docentes-anio">Año</label>
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pagos-docentes-anio">
+            Año
+          </label>
           <select
             id="pagos-docentes-anio"
+            className="campo__entrada"
             value={anio}
-            onChange={(evento) => setAnio(evento.target.value)}
+            onChange={(evento) => {
+              setAnio(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
           >
             {anios.map((valor) => (
               <option key={valor} value={valor}>
@@ -148,12 +211,19 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
           </select>
         </div>
 
-        <div className="pagos-docentes__campo">
-          <label htmlFor="pagos-docentes-mes">Mes</label>
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pagos-docentes-mes">
+            Mes
+          </label>
           <select
             id="pagos-docentes-mes"
+            className="campo__entrada"
             value={mes}
-            onChange={(evento) => setMes(evento.target.value)}
+            onChange={(evento) => {
+              setMes(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
           >
             <option value="">Todos los meses</option>
             {meses.map((nombre, indice) => (
@@ -164,117 +234,179 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
           </select>
         </div>
 
-        <div className="pagos-docentes__campo">
-          <label htmlFor="pagos-docentes-busqueda">Buscar docente</label>
-          <input
-            id="pagos-docentes-busqueda"
-            type="search"
-            value={busqueda}
-            onChange={(evento) => setBusqueda(evento.target.value)}
-            placeholder="Nombres o apellidos"
-          />
-        </div>
+        <CampoEntrada
+          id="pagos-docentes-busqueda"
+          etiqueta="Buscar docente"
+          type="search"
+          value={busqueda}
+          onChange={(evento) => {
+            setBusqueda(evento.target.value);
+            setPagina(1);
+          }}
+          placeholder="Nombres o apellidos"
+          disabled={cargando}
+        />
 
-        <div className="pagos-docentes__campo">
-          <label htmlFor="pagos-docentes-estado">Estado</label>
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pagos-docentes-estado">
+            Estado
+          </label>
           <select
             id="pagos-docentes-estado"
+            className="campo__entrada"
             value={estado}
-            onChange={(evento) => setEstado(evento.target.value)}
+            onChange={(evento) => {
+              setEstado(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
           >
             <option value="">Todos</option>
-            <option value="PROGRAMADO">Programado</option>
-            <option value="PAGADO">Pagado</option>
-            <option value="RETRASO">En retraso</option>
+            {Object.entries(estados).map(([valor, etiqueta]) => (
+              <option key={valor} value={valor}>
+                {etiqueta}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {cargando && <p role="status">Cargando pagos...</p>}
-      {error && <p role="alert">{error}</p>}
+      {mensajePago && (
+        <p className="pagos-docentes__exito" role="status">
+          {mensajePago}
+        </p>
+      )}
 
-      {mensajePago && <p role="status">{mensajePago}</p>}
-      {errorPago && <p role="alert">{errorPago}</p>}
+      {cargando && (
+        <p className="estado-listado" role="status">
+          Cargando pagos...
+        </p>
+      )}
+
+      {!cargando && error && (
+        <div className="estado-listado">
+          <p className="estado-listado__error" role="alert">
+            {error}
+          </p>
+          <Boton
+            onClick={() => {
+              setError("");
+              setCargando(true);
+              setIntento((actual) => actual + 1);
+            }}
+          >
+            Reintentar
+          </Boton>
+        </div>
+      )}
 
       {!cargando && !error && filtrados.length === 0 && (
-        <p>No hay pagos que coincidan con los filtros.</p>
+        <div className="estado-listado">
+          <h2>No hay pagos para estos filtros</h2>
+          <p>Prueba otro año o consulta todos los meses y estados.</p>
+          <Boton
+            onClick={() => {
+              setBusqueda("");
+              setMes("");
+              setEstado("");
+              setPagina(1);
+            }}
+          >
+            Ver todos los meses y estados
+          </Boton>
+        </div>
       )}
 
       {!cargando && !error && filtrados.length > 0 && (
-        <div
-          className="pagos-docentes__tabla-contenedor"
-          role="region"
-          aria-label="Listado de pagos a docentes"
-          tabIndex={0}
-        >
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Docente</th>
-                <th scope="col">Mes</th>
-                <th scope="col">Monto</th>
-                <th scope="col">Fecha programada</th>
-                <th scope="col">Fecha de pago</th>
-                <th scope="col">Estado</th>
-                <th scope="col">Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filtrados.map((pago) => (
-                <tr key={pago.id}>
-                  <td>{pago.nombresDocente}</td>
-                  <td>{meses[pago.mes - 1]}</td>
-                  <td>{moneda.format(pago.monto)}</td>
-                  <td>{pago.fechaProgramada.split("-").reverse().join("/")}</td>
-                  <td>
-                    {pago.fechaPago
-                      ? new Date(pago.fechaPago).toLocaleDateString("es-PE", {
-                          timeZone: "America/Lima",
-                        })
-                      : "Sin pago"}
-                  </td>
-                  <td>
-                    <span
-                      className={`pagos-docentes__estado pagos-docentes__estado--${pago.estado.toLowerCase()}`}
-                    >
-                      {estados[pago.estado]}
-                    </span>
-                  </td>
-                  <td>
-                    {pago.estado === "PAGADO" ? (
-                      <span className="pagos-docentes__pago-registrado">
-                        Pago registrado
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="pagos-docentes__boton"
-                        disabled={pagandoId !== null}
-                        onClick={() => setPagoSeleccionado(pago)}
-                        aria-label={`Registrar pago de ${meses[pago.mes - 1]} de ${pago.nombresDocente}`}
-                      >
-                        {pagandoId === pago.id
-                          ? "Registrando..."
-                          : "Registrar pago"}
-                      </button>
-                    )}
-                  </td>
+        <>
+          <div
+            className="tabla-listado"
+            role="region"
+            aria-label="Listado de pagos a docentes"
+            tabIndex={0}
+          >
+            <table>
+              <caption className="solo-lectores">
+                Pagos a docentes del año {anio}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Docente</th>
+                  <th scope="col">Mes</th>
+                  <th scope="col">Monto</th>
+                  <th scope="col">Fecha programada</th>
+                  <th scope="col">Fecha de pago</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {visibles.map((pago) => (
+                  <tr key={pago.id}>
+                    <td data-label="Docente">{pago.nombresDocente}</td>
+                    <td data-label="Mes">{meses[pago.mes - 1]}</td>
+                    <td data-label="Monto">{moneda.format(pago.monto)}</td>
+                    <td data-label="Fecha programada">
+                      {pago.fechaProgramada.split("-").reverse().join("/")}
+                    </td>
+                    <td data-label="Fecha de pago">
+                      {pago.fechaPago
+                        ? fechaPago.format(new Date(pago.fechaPago))
+                        : "Sin pago"}
+                    </td>
+                    <td data-label="Estado">
+                      <BadgeEstado
+                        variante={
+                          pago.estado === "PAGADO"
+                            ? "exito"
+                            : pago.estado === "RETRASO"
+                              ? "error"
+                              : "pendiente"
+                        }
+                      >
+                        {estados[pago.estado]}
+                      </BadgeEstado>
+                    </td>
+                    <td data-label="Acciones">
+                      {pago.estado === "PAGADO" ? (
+                        <span>Pago registrado</span>
+                      ) : (
+                        <Boton
+                          onClick={() => {
+                            setMensajePago("");
+                            setErrorPago("");
+                            setPagoSeleccionado(pago);
+                          }}
+                          aria-label={`Registrar pago de ${
+                            meses[pago.mes - 1]
+                          } de ${pago.nombresDocente}`}
+                        >
+                          Registrar pago
+                        </Boton>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Paginacion
+            pagina={paginaActual}
+            total={filtrados.length}
+            porPagina={POR_PAGINA}
+            onCambiar={setPagina}
+          />
+        </>
       )}
+
       {pagoSeleccionado && (
         <ConfirmarPagoDocenteModal
           pago={pagoSeleccionado}
-          onCancelar={() => setPagoSeleccionado(null)}
-          onConfirmar={() => {
-            const seleccionado = pagoSeleccionado;
-            setPagoSeleccionado(null);
-            void registrarPago(seleccionado);
-          }}
+          pagando={pagando}
+          error={errorPago}
+          onCancelar={cerrarPago}
+          onConfirmar={() => void registrarPago()}
         />
       )}
     </section>
@@ -283,25 +415,40 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
 
 interface ConfirmarPagoDocenteModalProps {
   pago: PagoDocente;
+  pagando: boolean;
+  error: string;
   onCancelar: () => void;
   onConfirmar: () => void;
 }
 
 function ConfirmarPagoDocenteModal({
   pago,
+  pagando,
+  error,
   onCancelar,
   onConfirmar,
 }: ConfirmarPagoDocenteModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const tituloId = useId();
+  const descripcionId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
+    const elementoAnterior = document.activeElement;
 
-    dialog.showModal();
+    if (dialog && !dialog.open) dialog.showModal();
 
     return () => {
-      dialog.close();
+      dialog?.close();
+
+      if (
+        elementoAnterior instanceof HTMLElement &&
+        elementoAnterior.isConnected
+      ) {
+        elementoAnterior.focus();
+      } else {
+        document.getElementById("pagos-docentes-busqueda")?.focus();
+      }
     };
   }, []);
 
@@ -309,17 +456,17 @@ function ConfirmarPagoDocenteModal({
     <dialog
       ref={dialogRef}
       className="pagos-docentes__modal"
-      aria-labelledby="pago-docente-titulo"
-      aria-describedby="pago-docente-descripcion"
+      aria-labelledby={tituloId}
+      aria-describedby={descripcionId}
+      aria-busy={pagando}
       onCancel={(evento) => {
         evento.preventDefault();
         onCancelar();
       }}
     >
-      <h2 id="pago-docente-titulo">Confirmar pago a docente</h2>
-
-      <p id="pago-docente-descripcion">
-        Confirma cuando el colegio haya entregado el importe al docente.
+      <h2 id={tituloId}>Confirmar pago a docente</h2>
+      <p id={descripcionId}>
+        Confirma únicamente cuando el colegio haya entregado el importe.
       </p>
 
       <dl className="pagos-docentes__modal-detalle">
@@ -327,37 +474,36 @@ function ConfirmarPagoDocenteModal({
           <dt>Docente</dt>
           <dd>{pago.nombresDocente}</dd>
         </div>
-
         <div>
           <dt>Periodo</dt>
           <dd>
             {meses[pago.mes - 1]} de {pago.anio}
           </dd>
         </div>
-
         <div>
           <dt>Monto pagado</dt>
           <dd>{moneda.format(pago.monto)}</dd>
         </div>
       </dl>
 
-      <div className="pagos-docentes__acciones">
-        <button
-          type="button"
-          className="pagos-docentes__boton-secundario"
-          onClick={onCancelar}
-          autoFocus
-        >
-          Cancelar
-        </button>
+      {error && (
+        <p className="pagos-docentes__error" role="alert">
+          {error}
+        </p>
+      )}
 
-        <button
-          type="button"
-          className="pagos-docentes__boton"
+      <div className="pagos-docentes__acciones">
+        <Boton onClick={onCancelar} disabled={pagando} autoFocus>
+          Cancelar
+        </Boton>
+        <Boton
+          variante="principal"
           onClick={onConfirmar}
+          cargando={pagando}
+          textoCargando="Registrando..."
         >
-          Confirmar pago
-        </button>
+          {error ? "Reintentar pago" : "Confirmar pago"}
+        </Boton>
       </div>
     </dialog>
   );

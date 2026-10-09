@@ -6,25 +6,40 @@ import { obtenerBoleta } from "../boletas.service";
 import type { Boleta } from "../boletas.types";
 import { BoletaVista } from "../components/BoletaVista";
 import { RegistroNotasModal } from "../../calificaciones/components/RegistroNotasModal";
+import { Boton } from "../../../shared/components/Boton";
+import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import "../../../styles/listados.css";
 import "./BoletasPage.css";
 
 interface BoletasPageProps {
   token: string;
 }
 
+function normalizar(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es");
+}
+
 export function BoletasPage({ token }: BoletasPageProps) {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [cargandoMatriculas, setCargandoMatriculas] = useState(true);
   const [errorMatriculas, setErrorMatriculas] = useState("");
+  const [intentoMatriculas, setIntentoMatriculas] = useState(0);
+
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
   const [busqueda, setBusqueda] = useState("");
   const [matriculaId, setMatriculaId] = useState("");
   const [boleta, setBoleta] = useState<Boleta | null>(null);
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
   const [matriculaNotas, setMatriculaNotas] = useState<Matricula | null>(null);
 
   const consultaRef = useRef(0);
+  const consultandoRef = useRef(false);
+  const [ultimaConsulta, setUltimaConsulta] = useState<Matricula | null>(null);
 
   useEffect(() => {
     let activo = true;
@@ -52,14 +67,24 @@ export function BoletasPage({ token }: BoletasPageProps) {
     return () => {
       activo = false;
       consultaRef.current += 1;
+      consultandoRef.current = false;
     };
-  }, [token]);
+  }, [token, intentoMatriculas]);
+
+  function reintentarMatriculas() {
+    setErrorMatriculas("");
+    setCargandoMatriculas(true);
+    setIntentoMatriculas((actual) => actual + 1);
+  }
 
   function limpiarConsulta() {
     consultaRef.current += 1;
+    consultandoRef.current = false;
+    setUltimaConsulta(null);
     setConsultando(false);
     setBoleta(null);
     setError("");
+    setMensaje("");
   }
 
   const anios = Array.from(
@@ -69,33 +94,29 @@ export function BoletasPage({ token }: BoletasPageProps) {
     ]),
   ).sort((a, b) => b - a);
 
-  const termino = busqueda.trim().toLocaleLowerCase("es");
+  const termino = normalizar(busqueda.trim());
 
   const opciones = matriculas
     .filter(
       (matricula) =>
         matricula.anioLectivo === Number(anio) &&
-        matricula.nombreEstudiante.toLocaleLowerCase("es").includes(termino),
+        normalizar(matricula.nombreEstudiante).includes(termino),
     )
     .sort((a, b) => a.nombreEstudiante.localeCompare(b.nombreEstudiante, "es"));
 
-  async function consultar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    if (consultando) return;
-
-    const seleccionada = opciones.find(
-      (matricula) => matricula.id === matriculaId,
-    );
-
-    if (!seleccionada) {
-      setError("Selecciona un estudiante matriculado.");
-      return;
-    }
+  async function cargarBoleta(
+    seleccionada: Matricula,
+    despuesDeGuardar = false,
+  ) {
+    if (consultandoRef.current) return;
 
     const consultaId = ++consultaRef.current;
+    consultandoRef.current = true;
+    setUltimaConsulta(seleccionada);
 
     setConsultando(true);
     setError("");
+    setMensaje("");
     setBoleta(null);
 
     try {
@@ -105,26 +126,50 @@ export function BoletasPage({ token }: BoletasPageProps) {
         seleccionada.anioLectivo,
       );
 
-      if (consultaId === consultaRef.current) {
-        setBoleta(datos);
+      if (consultaId !== consultaRef.current) return;
+
+      setBoleta(datos);
+
+      if (despuesDeGuardar) {
+        setMensaje("Las evaluaciones se guardaron y la boleta se actualizó.");
       }
     } catch (fallo: unknown) {
-      if (consultaId === consultaRef.current) {
-        setError(
-          fallo instanceof Error
-            ? fallo.message
-            : "No se pudo consultar la boleta.",
-        );
-      }
+      if (consultaId !== consultaRef.current) return;
+
+      const detalle =
+        fallo instanceof Error ? fallo.message : "Inténtalo nuevamente.";
+
+      setError(
+        despuesDeGuardar
+          ? `Las evaluaciones se guardaron, pero no se pudo actualizar la boleta. ${detalle}`
+          : `No se pudo consultar la boleta. ${detalle}`,
+      );
     } finally {
       if (consultaId === consultaRef.current) {
+        consultandoRef.current = false;
         setConsultando(false);
       }
     }
   }
 
+  function consultar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+
+    const seleccionada = opciones.find(
+      (matricula) => matricula.id === matriculaId,
+    );
+
+    if (!seleccionada) {
+      setError("Selecciona un estudiante matriculado.");
+      document.getElementById("boletas-estudiante")?.focus();
+      return;
+    }
+
+    void cargarBoleta(seleccionada);
+  }
+
   function abrirRegistroEvaluaciones() {
-    if (!boleta) return;
+    if (!boleta || consultandoRef.current) return;
 
     const seleccionada = matriculas.find(
       (matricula) =>
@@ -138,43 +183,16 @@ export function BoletasPage({ token }: BoletasPageProps) {
     }
 
     setError("");
+    setMensaje("");
     setMatriculaNotas(seleccionada);
   }
 
-  async function cerrarRegistroNotas(huboCambios: boolean) {
+  function cerrarRegistroNotas(huboCambios: boolean) {
     const seleccionada = matriculaNotas;
     setMatriculaNotas(null);
 
-    if (!huboCambios || !seleccionada) return;
-
-    const consultaId = ++consultaRef.current;
-
-    setConsultando(true);
-    setError("");
-    setBoleta(null);
-
-    try {
-      const datos = await obtenerBoleta(
-        token,
-        seleccionada.estudianteId,
-        seleccionada.anioLectivo,
-      );
-
-      if (consultaId === consultaRef.current) {
-        setBoleta(datos);
-      }
-    } catch (fallo: unknown) {
-      if (consultaId === consultaRef.current) {
-        const detalle = fallo instanceof Error ? ` ${fallo.message}` : "";
-
-        setError(
-          `Las evaluaciones se guardaron, pero no se pudo actualizar la boleta.${detalle}`,
-        );
-      }
-    } finally {
-      if (consultaId === consultaRef.current) {
-        setConsultando(false);
-      }
+    if (huboCambios && seleccionada) {
+      void cargarBoleta(seleccionada, true);
     }
   }
 
@@ -182,21 +200,32 @@ export function BoletasPage({ token }: BoletasPageProps) {
     <section className="boletas-page">
       <header className="boletas-page__encabezado">
         <h1>Boletas de notas</h1>
-        <p>Selecciona el año y el estudiante para consultar su boleta.</p>
+        <p>
+          Consulta la boleta del estudiante para registrar evaluaciones o
+          imprimirla.
+        </p>
       </header>
 
       {cargandoMatriculas && (
-        <p role="status">Cargando estudiantes matriculados...</p>
+        <p role="status" className="boletas-page__carga">
+          Cargando estudiantes matriculados...
+        </p>
       )}
 
-      {errorMatriculas && <p role="alert">{errorMatriculas}</p>}
+      {!cargandoMatriculas && errorMatriculas && (
+        <div className="estado-listado boletas-page__estado">
+          <p role="alert">{errorMatriculas}</p>
+          <Boton onClick={reintentarMatriculas}>Reintentar</Boton>
+        </div>
+      )}
 
       {!cargandoMatriculas && !errorMatriculas && (
-        <form className="boletas-page__filtros" onSubmit={consultar}>
-          <div className="boletas-page__campo">
+        <form className="boletas-page__filtros" onSubmit={consultar} noValidate>
+          <div className="campo">
             <label htmlFor="boletas-anio">Año lectivo</label>
             <select
               id="boletas-anio"
+              className="campo__entrada"
               value={anio}
               onChange={(evento) => {
                 setAnio(evento.target.value);
@@ -212,77 +241,111 @@ export function BoletasPage({ token }: BoletasPageProps) {
             </select>
           </div>
 
-          <div className="boletas-page__campo">
-            <label htmlFor="boletas-busqueda">Buscar estudiante</label>
-            <input
-              id="boletas-busqueda"
-              type="search"
-              value={busqueda}
-              onChange={(evento) => {
-                setBusqueda(evento.target.value);
-                setMatriculaId("");
-                limpiarConsulta();
-              }}
-              placeholder="Nombres o apellidos"
-            />
-          </div>
+          <CampoEntrada
+            id="boletas-busqueda"
+            etiqueta="Buscar estudiante"
+            type="search"
+            value={busqueda}
+            onChange={(evento) => {
+              setBusqueda(evento.target.value);
+              setMatriculaId("");
+              limpiarConsulta();
+            }}
+            placeholder="Nombres o apellidos"
+          />
 
-          <div className="boletas-page__campo">
+          <div className="campo boletas-page__seleccion">
             <label htmlFor="boletas-estudiante">Estudiante</label>
             <select
               id="boletas-estudiante"
+              className="campo__entrada"
               value={matriculaId}
               onChange={(evento) => {
                 setMatriculaId(evento.target.value);
                 limpiarConsulta();
               }}
+              disabled={opciones.length === 0}
               required
             >
               <option value="">Selecciona un estudiante</option>
+
               {opciones.map((matricula) => (
                 <option key={matricula.id} value={matricula.id}>
-                  {matricula.nombreEstudiante} — {matricula.nivel}{" "}
+                  {matricula.nombreEstudiante} —{" "}
+                  {matricula.nivel === "INICIAL" ? "Inicial" : "Primaria"}{" "}
                   {matricula.grado}
                 </option>
               ))}
             </select>
           </div>
 
-          <button
+          <Boton
             type="submit"
-            className="boletas-page__boton"
-            disabled={consultando || !matriculaId}
+            variante={boleta ? "secundario" : "principal"}
+            cargando={consultando}
+            textoCargando="Consultando..."
+            disabled={!matriculaId}
           >
-            {consultando ? "Consultando..." : "Consultar boleta"}
-          </button>
+            Consultar boleta
+          </Boton>
 
           {opciones.length === 0 && (
-            <p>No hay estudiantes que coincidan con el año y la búsqueda.</p>
+            <div className="boletas-page__sin-resultados">
+              <p>No hay estudiantes que coincidan con el año y la búsqueda.</p>
+
+              {busqueda && (
+                <Boton
+                  onClick={() => {
+                    setBusqueda("");
+                    setMatriculaId("");
+                    limpiarConsulta();
+                  }}
+                >
+                  Limpiar búsqueda
+                </Boton>
+              )}
+            </div>
           )}
         </form>
       )}
 
-      {error && <p role="alert">{error}</p>}
-      {consultando && <p role="status">Cargando boleta...</p>}
+      {error && (
+        <div className="estado-listado boletas-page__estado">
+          <p role="alert">{error}</p>
+
+          {ultimaConsulta && (
+            <Boton
+              onClick={() => {
+                void cargarBoleta(ultimaConsulta);
+              }}
+              disabled={consultando}
+            >
+              Reintentar consulta
+            </Boton>
+          )}
+        </div>
+      )}
+
+      {mensaje && (
+        <p role="status" className="boletas-page__exito">
+          {mensaje}
+        </p>
+      )}
+
+      {consultando && (
+        <p role="status" className="boletas-page__carga">
+          Cargando boleta...
+        </p>
+      )}
 
       {boleta && (
         <>
           <div className="boletas-page__acciones">
-            <button
-              type="button"
-              className="boletas-page__boton"
-              onClick={abrirRegistroEvaluaciones}
-            >
+            <Boton variante="principal" onClick={abrirRegistroEvaluaciones}>
               Registrar evaluaciones
-            </button>
+            </Boton>
 
-            <button
-              type="button"
-              className="boletas-page__boton"
-              onClick={() => window.print()}
-            >
-              Imprimir boleta
-            </button>
+            <Boton onClick={() => window.print()}>Imprimir boleta</Boton>
           </div>
 
           <BoletaVista boleta={boleta} />
@@ -294,9 +357,7 @@ export function BoletasPage({ token }: BoletasPageProps) {
           key={matriculaNotas.id}
           token={token}
           matricula={matriculaNotas}
-          onCerrar={(huboCambios) => {
-            void cerrarRegistroNotas(huboCambios);
-          }}
+          onCerrar={cerrarRegistroNotas}
         />
       )}
     </section>
