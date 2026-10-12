@@ -15,6 +15,8 @@ import { ReporteFinancieroPage } from "../../features/reportes-financieros/pages
 import { BoletasPage } from "../../features/boletas/pages/BoletasPage";
 import { DocenteLayout } from "../../layouts/docente/DocenteLayout";
 import { DocenteDashboardPage } from "../../features/dashboard/pages/DocenteDashboardPage";
+import { MisCursosPage } from "../../features/cursos/pages/MisCursosPage";
+import { CursoDocentePage } from "../../features/cursos/pages/CursoDocentePage";
 
 interface AppRoutesProps {
   sesion: LoginResponse | null;
@@ -142,11 +144,23 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
             </DocenteLayout>
           }
         >
+          <Route index element={<DocenteDashboardPage />} />
+
           <Route
-            index
+            path="cursos"
             element={
               sesion?.rol === "DOCENTE" ? (
-                <DocenteDashboardPage key={sesion.token} token={sesion.token} />
+                <MisCursosPage key={sesion.token} token={sesion.token} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="cursos/:cursoId"
+            element={
+              sesion?.rol === "DOCENTE" ? (
+                <CursoDocentePage token={sesion.token} />
               ) : (
                 <Navigate to="/login" replace />
               )

@@ -5,6 +5,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { GenerarPagosDocentes } from "../components/GenerarPagosDocentes";
 import "../../../styles/listados.css";
 import "./PagosDocentesPage.css";
 
@@ -187,6 +188,30 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
           Consulta los pagos programados y registra los importes entregados.
         </p>
       </header>
+
+      <div className="pagos-docentes__herramientas">
+        <GenerarPagosDocentes
+          token={token}
+          disabled={cargando || pagando}
+          onGenerados={(anioGenerado) => {
+            setAnio(anioGenerado);
+            setMes("");
+            setEstado("");
+            setBusqueda("");
+            setPagina(1);
+
+            setError("");
+            setErrorPago("");
+            setCargando(true);
+
+            setMensajePago(
+              `Generación de pagos de ${anioGenerado} completada. Los pagos existentes se conservaron.`,
+            );
+
+            setIntento((actual) => actual + 1);
+          }}
+        />
+      </div>
 
       <div className="pagos-docentes__filtros">
         <div className="campo">

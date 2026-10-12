@@ -211,6 +211,47 @@
   list-style: none;
 }
 
+.docente-dashboard__bienvenida,
+.docente-dashboard__guia {
+  padding: var(--espacio-6);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-superficie);
+}
+
+.docente-dashboard__bienvenida {
+  margin-bottom: var(--espacio-6);
+  border-top: 4px solid var(--azul-base);
+}
+
+.docente-dashboard__bienvenida h2,
+.docente-dashboard__guia h2 {
+  margin: 0;
+  color: var(--color-texto);
+  font-size: 1.25rem;
+}
+
+.docente-dashboard__bienvenida p,
+.docente-dashboard__guia p,
+.docente-dashboard__guia li {
+  color: var(--color-texto-secundario);
+  line-height: 1.6;
+}
+
+.docente-dashboard__bienvenida p {
+  margin: var(--espacio-3) 0 var(--espacio-6);
+}
+
+.docente-dashboard__guia ol {
+  display: grid;
+  gap: var(--espacio-3);
+  padding-left: 1.5rem;
+}
+
+.docente-dashboard__guia p {
+  margin-bottom: 0;
+}
+
 @media (min-width: 640px) {
   .docente-dashboard__filtros {
     padding: var(--espacio-6);
