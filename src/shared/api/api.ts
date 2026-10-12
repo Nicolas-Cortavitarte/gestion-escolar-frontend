@@ -1,6 +1,14 @@
 import { EVENTO_SESION_EXPIRADA } from "../utils/sesion";
 
-export const API_URL = import.meta.env.VITE_API_URL.replace(/\/+$/, "");
+const urlConfigurada = import.meta.env.VITE_API_URL?.trim();
+
+if (!urlConfigurada) {
+  throw new Error(
+    "Falta configurar VITE_API_URL en las variables de entorno del frontend.",
+  );
+}
+
+export const API_URL = urlConfigurada.replace(/\/+$/, "");
 
 export async function fetchApi(
   url: string,

@@ -64,3 +64,17 @@ export async function pagarDocente(
 
   return (await respuesta.json()) as PagoDocente;
 }
+
+export async function generarPagosAnuales(token: string): Promise<void> {
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/pagos-docentes/generar-anuales`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  await comprobarRespuesta(respuesta);
+}

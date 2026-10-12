@@ -105,6 +105,28 @@
   flex: 1;
 }
 
+.pagos-docentes__herramientas {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+}
+
+.generar-pagos__error {
+  padding: var(--espacio-3);
+  border: 1px solid var(--rojo-base);
+  border-radius: var(--radio-control);
+  background: var(--rojo-claro);
+  color: var(--rojo-base);
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .pagos-docentes__herramientas > button {
+    width: 100%;
+  }
+}
+
 @media (min-width: 640px) {
   .pagos-docentes__filtros {
     grid-template-columns: repeat(2, minmax(0, 1fr));

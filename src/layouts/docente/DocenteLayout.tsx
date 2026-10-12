@@ -9,7 +9,17 @@ interface DocenteLayoutProps {
   onLogout: () => void;
 }
 
-const grupos: readonly GrupoNavegacion[] = [];
+const grupos: readonly GrupoNavegacion[] = [
+  {
+    titulo: "Gestión académica",
+    enlaces: [
+      {
+        ruta: "/docente/cursos",
+        texto: "Mis cursos",
+      },
+    ],
+  },
+];
 
 export function DocenteLayout({ children, onLogout }: DocenteLayoutProps) {
   return (
