@@ -1,5 +1,5 @@
 import type { ResumenFinancieroMes } from "./dashboard.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
 export async function obtenerCantidadEstudiantes(
   token: string,
@@ -10,13 +10,10 @@ export async function obtenerCantidadEstudiantes(
     },
   });
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo cargar la cantidad de estudiantes");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo cargar la cantidad de estudiantes",
+  );
 
   const estudiantes: unknown = await respuesta.json();
 
@@ -36,13 +33,10 @@ export async function obtenerCantidadDocentes(token: string): Promise<number> {
     },
   });
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo cargar la cantidad de docentes");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo cargar la cantidad de docentes",
+  );
 
   const docentes: unknown = await respuesta.json();
 
@@ -75,17 +69,10 @@ export async function obtenerResumenFinancieroMes(
     },
   );
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para consultar el reporte financiero.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo cargar el resumen financiero del mes.");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo cargar el resumen financiero del mes.",
+  );
 
   const reporte = (await respuesta.json()) as {
     totalIngresos: number;

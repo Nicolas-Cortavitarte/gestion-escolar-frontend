@@ -1,5 +1,5 @@
 import type { ReporteFinanciero } from "./reportes-financieros.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
 export async function obtenerReporteFinanciero(
   token: string,
@@ -21,17 +21,10 @@ export async function obtenerReporteFinanciero(
     },
   );
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para consultar el reporte financiero.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo cargar el reporte financiero.");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo cargar el reporte financiero.",
+  );
 
   return (await respuesta.json()) as ReporteFinanciero;
 }

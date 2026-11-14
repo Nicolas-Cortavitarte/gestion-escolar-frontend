@@ -17,7 +17,7 @@ export async function obtenerNotasPorBimestre(
   });
 
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/estudiantes/${estudianteId}/notas-competencias?${parametros}`,
+    `${API_URL}/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/notas-competencias?${parametros}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -36,7 +36,7 @@ export async function guardarNotaCompetencia(
   datos: NotaCompetenciaRequest,
 ): Promise<NotaCompetencia> {
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/estudiantes/${estudianteId}/notas-competencias`,
+    `${API_URL}/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/notas-competencias`,
     {
       method: "POST",
       headers: {

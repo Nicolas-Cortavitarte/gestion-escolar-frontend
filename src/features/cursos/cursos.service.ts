@@ -38,7 +38,9 @@ export async function actualizarCurso(
   id: string,
   datos: CursoRequest,
 ): Promise<Curso> {
-  const respuesta = await fetchApi(`${API_URL}/api/v1/cursos/${id}`, {
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/cursos/${encodeURIComponent(id)}`,
+    {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,

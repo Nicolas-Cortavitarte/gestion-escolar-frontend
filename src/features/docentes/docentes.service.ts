@@ -38,14 +38,17 @@ export async function actualizarDocente(
   id: string,
   datos: DocenteUpdate,
 ): Promise<Docente> {
-  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes/${id}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/docentes/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(datos),
     },
-    body: JSON.stringify(datos),
-  });
+  );
 
   await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_DOCENTES);
 
@@ -60,7 +63,7 @@ export async function cambiarEstadoDocente(
   const accion = activo ? "reactivar" : "desactivar";
 
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/docentes/${id}/${accion}`,
+    `${API_URL}/api/v1/docentes/${encodeURIComponent(id)}/${accion}`,
     {
       method: "PUT",
       headers: {

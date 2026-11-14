@@ -251,12 +251,29 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                     setGrado("");
                     setErrorMatricula("");
                   }}
+                  aria-invalid={Boolean(
+                    validacionMatricula.errores["existente-nivel"],
+                  )}
+                  aria-describedby={
+                    validacionMatricula.errores["existente-nivel"]
+                      ? "existente-nivel-error"
+                      : undefined
+                  }
                   required
                 >
                   <option value="">Selecciona un nivel</option>
                   <option value="INICIAL">Inicial</option>
                   <option value="PRIMARIA">Primaria</option>
                 </select>
+                {validacionMatricula.errores["existente-nivel"] && (
+                  <p
+                    className="campo__error"
+                    id="existente-nivel-error"
+                    role="alert"
+                  >
+                    {validacionMatricula.errores["existente-nivel"]}
+                  </p>
+                )}
               </div>
 
               <div className="campo">
@@ -273,7 +290,14 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                     setErrorMatricula("");
                   }}
                   disabled={!nivel}
-                  aria-describedby="existente-grado-ayuda"
+                  aria-invalid={Boolean(
+                    validacionMatricula.errores["existente-grado"],
+                  )}
+                  aria-describedby={
+                    validacionMatricula.errores["existente-grado"]
+                      ? "existente-grado-ayuda existente-grado-error"
+                      : "existente-grado-ayuda"
+                  }
                   required
                 >
                   <option value="">
@@ -292,6 +316,15 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                 <p className="campo__ayuda" id="existente-grado-ayuda">
                   Los grados disponibles dependen del nivel seleccionado.
                 </p>
+                {validacionMatricula.errores["existente-grado"] && (
+                  <p
+                    className="campo__error"
+                    id="existente-grado-error"
+                    role="alert"
+                  >
+                    {validacionMatricula.errores["existente-grado"]}
+                  </p>
+                )}
               </div>
 
               <CampoEntrada
@@ -336,6 +369,14 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                     setFechaVencimiento(evento.target.value);
                     setErrorMatricula("");
                   }}
+                  aria-invalid={Boolean(
+                    validacionMatricula.errores["existente-vencimiento"],
+                  )}
+                  aria-describedby={
+                    validacionMatricula.errores["existente-vencimiento"]
+                      ? "existente-vencimiento-error"
+                      : undefined
+                  }
                   required
                 >
                   <option value="">Selecciona un día</option>
@@ -348,6 +389,15 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                     ),
                   )}
                 </select>
+                {validacionMatricula.errores["existente-vencimiento"] && (
+                  <p
+                    className="campo__error"
+                    id="existente-vencimiento-error"
+                    role="alert"
+                  >
+                    {validacionMatricula.errores["existente-vencimiento"]}
+                  </p>
+                )}
               </div>
             </div>
           </fieldset>

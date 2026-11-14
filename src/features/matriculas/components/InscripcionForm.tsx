@@ -494,12 +494,27 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                     }));
                     setErrorMatricula("");
                   }}
+                  aria-invalid={Boolean(validacion.errores["inscripcion-nivel"])}
+                  aria-describedby={
+                    validacion.errores["inscripcion-nivel"]
+                      ? "inscripcion-nivel-error"
+                      : undefined
+                  }
                   required
                 >
                   <option value="">Selecciona un nivel</option>
                   <option value="INICIAL">Inicial</option>
                   <option value="PRIMARIA">Primaria</option>
                 </select>
+                {validacion.errores["inscripcion-nivel"] && (
+                  <p
+                    className="campo__error"
+                    id="inscripcion-nivel-error"
+                    role="alert"
+                  >
+                    {validacion.errores["inscripcion-nivel"]}
+                  </p>
+                )}
               </div>
 
               <div className="campo">
@@ -520,7 +535,12 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                   }}
                   disabled={!matricula.nivel}
                   required
-                  aria-describedby="inscripcion-grado-ayuda"
+                  aria-invalid={Boolean(validacion.errores["inscripcion-grado"])}
+                  aria-describedby={
+                    validacion.errores["inscripcion-grado"]
+                      ? "inscripcion-grado-ayuda inscripcion-grado-error"
+                      : "inscripcion-grado-ayuda"
+                  }
                 >
                   <option value="">
                     {matricula.nivel
@@ -538,6 +558,15 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                 <p className="campo__ayuda" id="inscripcion-grado-ayuda">
                   Los grados disponibles dependen del nivel seleccionado.
                 </p>
+                {validacion.errores["inscripcion-grado"] && (
+                  <p
+                    className="campo__error"
+                    id="inscripcion-grado-error"
+                    role="alert"
+                  >
+                    {validacion.errores["inscripcion-grado"]}
+                  </p>
+                )}
               </div>
 
               <CampoEntrada
@@ -593,6 +622,14 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                     }));
                     setErrorMatricula("");
                   }}
+                  aria-invalid={Boolean(
+                    validacion.errores["inscripcion-vencimiento"],
+                  )}
+                  aria-describedby={
+                    validacion.errores["inscripcion-vencimiento"]
+                      ? "inscripcion-vencimiento-error"
+                      : undefined
+                  }
                   required
                 >
                   <option value="">Selecciona un día</option>
@@ -604,6 +641,15 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                     ),
                   )}
                 </select>
+                {validacion.errores["inscripcion-vencimiento"] && (
+                  <p
+                    className="campo__error"
+                    id="inscripcion-vencimiento-error"
+                    role="alert"
+                  >
+                    {validacion.errores["inscripcion-vencimiento"]}
+                  </p>
+                )}
               </div>
             </div>
           </fieldset>

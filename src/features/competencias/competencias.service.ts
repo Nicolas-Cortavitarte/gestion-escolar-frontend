@@ -44,7 +44,9 @@ export async function actualizarCompetencia(
   id: string,
   datos: CompetenciaRequest,
 ): Promise<Competencia> {
-  const respuesta = await fetchApi(`${API_URL}/api/v1/competencias/${id}`, {
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/competencias/${encodeURIComponent(id)}`,
+    {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,

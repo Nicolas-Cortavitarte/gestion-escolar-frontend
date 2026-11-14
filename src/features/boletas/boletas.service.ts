@@ -1,5 +1,5 @@
 import type { Boleta } from "./boletas.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
 export async function obtenerBoleta(
   token: string,
@@ -11,7 +11,7 @@ export async function obtenerBoleta(
   });
 
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/boletas/estudiante/${estudianteId}?${parametros}`,
+    `${API_URL}/api/v1/boletas/estudiante/${encodeURIComponent(estudianteId)}?${parametros}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -19,34 +19,7 @@ export async function obtenerBoleta(
     },
   );
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para consultar esta boleta.");
-  }
-
-  if (!respuesta.ok) {
-    let mensaje = "No se pudo consultar la boleta.";
-
-    try {
-      const datos: unknown = await respuesta.json();
-
-      if (
-        typeof datos === "object" &&
-        datos !== null &&
-        "message" in datos &&
-        typeof datos.message === "string"
-      ) {
-        mensaje = datos.message;
-      }
-    } catch {
-      // Conserva el mensaje general si la respuesta no contiene JSON.
-    }
-
-    throw new Error(mensaje);
-  }
+  await asegurarRespuestaOk(respuesta, "No se pudo consultar la boleta.");
 
   return (await respuesta.json()) as Boleta;
 }
