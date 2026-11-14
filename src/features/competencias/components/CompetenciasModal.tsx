@@ -8,6 +8,7 @@ import {
 import type { Competencia } from "../competencias.types";
 import type { Curso } from "../../cursos/cursos.types";
 import { Boton } from "../../../shared/components/Boton";
+import { Modal } from "../../../shared/components/Modal";
 
 interface CompetenciasModalProps {
   token: string;
@@ -20,7 +21,6 @@ export function CompetenciasModal({
   curso,
   onCerrar,
 }: CompetenciasModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const guardandoRef = useRef(false);
   const campoRevisadoRef = useRef(false);
@@ -38,26 +38,6 @@ export function CompetenciasModal({
   const [editando, setEditando] = useState<Competencia | null>(null);
 
   const nombreId = `${id}-nombre`;
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const elementoAnterior =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    if (!dialog.open) dialog.showModal();
-
-    return () => {
-      dialog.close();
-
-      if (elementoAnterior?.isConnected) {
-        elementoAnterior.focus();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -203,15 +183,12 @@ export function CompetenciasModal({
   }
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
       className="competencias-modal"
-      aria-labelledby={`${id}-titulo`}
-      aria-describedby={`${id}-descripcion`}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        cerrar();
-      }}
+      ariaLabelledby={`${id}-titulo`}
+      ariaDescribedby={`${id}-descripcion`}
+      bloqueado={guardando}
+      onCerrar={cerrar}
     >
       <header className="competencias-modal__encabezado">
         <h2 id={`${id}-titulo`}>Competencias de {curso.nombre}</h2>
@@ -353,6 +330,6 @@ export function CompetenciasModal({
           Cerrar
         </Boton>
       </footer>
-    </dialog>
+    </Modal>
   );
 }

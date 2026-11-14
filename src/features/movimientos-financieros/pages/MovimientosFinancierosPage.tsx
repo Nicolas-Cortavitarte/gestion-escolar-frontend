@@ -13,6 +13,12 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import {
+  moneda,
+  normalizar,
+  mostrarFecha,
+  rangoMesActual,
+} from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./MovimientosFinancierosPage.css";
 
@@ -30,39 +36,6 @@ const categorias: Record<CategoriaMovimiento, string> = {
   DONACION: "Donación",
   OTRO: "Otro",
 };
-
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
-
-function normalizar(valor: string) {
-  return valor
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es");
-}
-
-function mostrarFecha(fecha: string) {
-  return fecha.split("-").reverse().join("/");
-}
-
-function rangoMesActual() {
-  const partes = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(new Date());
-
-  const anio = partes.find((parte) => parte.type === "year")!.value;
-  const mes = partes.find((parte) => parte.type === "month")!.value;
-  const ultimoDia = new Date(Number(anio), Number(mes), 0).getDate();
-
-  return {
-    desde: `${anio}-${mes}-01`,
-    hasta: `${anio}-${mes}-${String(ultimoDia).padStart(2, "0")}`,
-  };
-}
 
 export function MovimientosFinancierosPage({
   token,

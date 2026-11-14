@@ -8,16 +8,12 @@ import {
 import type { ResumenFinancieroMes } from "../dashboard.types";
 import { ComparacionFinanciera } from "../components/ComparacionFinanciera";
 import { TarjetaResumen } from "../../../shared/components/TarjetaResumen";
+import { moneda } from "../../../shared/utils/formato";
 import "./AdminDashboardPage.css";
 
 interface AdminDashboardPageProps {
   token: string;
 }
-
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
 
 function mensajeError(fallo: unknown): string {
   return fallo instanceof Error

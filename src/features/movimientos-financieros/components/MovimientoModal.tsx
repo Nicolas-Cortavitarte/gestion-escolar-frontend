@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { crearMovimiento } from "../movimientos-financieros.service";
 import type {
@@ -8,6 +8,7 @@ import type {
 } from "../movimientos-financieros.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { Modal } from "../../../shared/components/Modal";
 import { useValidacion } from "../../../shared/hooks/useValidacion";
 
 interface MovimientoModalProps {
@@ -44,7 +45,6 @@ export function MovimientoModal({
   onCreado,
   onCerrar,
 }: MovimientoModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const guardandoRef = useRef(false);
   const id = useId();
 
@@ -63,26 +63,6 @@ export function MovimientoModal({
   const montoId = `${id}-monto`;
   const fechaId = `${id}-fecha`;
   const descripcionId = `${id}-descripcion`;
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const elementoAnterior =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    if (!dialog.open) dialog.showModal();
-
-    return () => {
-      dialog.close();
-
-      if (elementoAnterior?.isConnected) {
-        elementoAnterior.focus();
-      }
-    };
-  }, []);
 
   function cerrar() {
     if (!guardandoRef.current) onCerrar();
@@ -144,15 +124,12 @@ export function MovimientoModal({
   }
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
       className="movimientos__modal"
-      aria-labelledby={`${id}-titulo`}
-      aria-describedby={`${id}-descripcion-modal`}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        cerrar();
-      }}
+      ariaLabelledby={`${id}-titulo`}
+      ariaDescribedby={`${id}-descripcion-modal`}
+      bloqueado={guardando}
+      onCerrar={cerrar}
     >
       <form
         className="movimientos__formulario"
@@ -288,6 +265,6 @@ export function MovimientoModal({
           </Boton>
         </div>
       </form>
-    </dialog>
+    </Modal>
   );
 }

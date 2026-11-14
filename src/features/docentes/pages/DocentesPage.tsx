@@ -6,6 +6,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./DocentesPage.css";
 
@@ -14,19 +15,6 @@ interface DocentesPageProps {
 }
 
 const POR_PAGINA = 10;
-
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
-
-function normalizar(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
 
 export function DocentesPage({ token }: DocentesPageProps) {
   const [docentes, setDocentes] = useState<Docente[]>([]);

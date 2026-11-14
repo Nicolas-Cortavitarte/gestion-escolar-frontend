@@ -6,6 +6,7 @@ import { EditarEstudianteModal } from "../components/EditarEstudianteModal";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Boton } from "../../../shared/components/Boton";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { normalizar, mostrarFecha } from "../../../shared/utils/formato";
 import "./EstudiantesPage.css";
 import "../../../styles/listados.css";
 
@@ -14,20 +15,6 @@ interface EstudiantesPageProps {
 }
 
 const POR_PAGINA = 10;
-
-function normalizar(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
-
-function mostrarFecha(fecha: string) {
-  const partes = fecha.split("-");
-
-  return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : fecha;
-}
 
 export function EstudiantesPage({ token }: EstudiantesPageProps) {
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);

@@ -6,6 +6,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Paginacion } from "../../../shared/components/Paginacion";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
+import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./MatriculasPage.css";
 
@@ -14,19 +15,6 @@ interface MatriculasPageProps {
 }
 
 const POR_PAGINA = 10;
-
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
-
-function normalizar(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
 
 export function MatriculasPage({ token }: MatriculasPageProps) {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);

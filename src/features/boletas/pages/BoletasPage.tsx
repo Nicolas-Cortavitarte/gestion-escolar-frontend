@@ -8,18 +8,12 @@ import { BoletaVista } from "../components/BoletaVista";
 import { RegistroNotasModal } from "../../calificaciones/components/RegistroNotasModal";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./BoletasPage.css";
 
 interface BoletasPageProps {
   token: string;
-}
-
-function normalizar(valor: string) {
-  return valor
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es");
 }
 
 export function BoletasPage({ token }: BoletasPageProps) {

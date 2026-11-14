@@ -6,6 +6,7 @@ import type { Curso } from "../cursos.types";
 import type { Docente } from "../../docentes/docentes.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { Modal } from "../../../shared/components/Modal";
 import { useValidacion } from "../../../shared/hooks/useValidacion";
 import { GRADOS_POR_NIVEL } from "../../../shared/constants/academico";
 
@@ -24,7 +25,6 @@ export function CursoModal({
   onGuardado,
   onCerrar,
 }: CursoModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const guardandoRef = useRef(false);
   const id = useId();
 
@@ -57,26 +57,6 @@ export function CursoModal({
     nivel !== "" && !Object.hasOwn(GRADOS_POR_NIVEL, nivel);
   const gradoAnteriorNoValido =
     grado !== "" && !gradosDisponibles.includes(grado);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const elementoAnterior =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    if (!dialog.open) dialog.showModal();
-
-    return () => {
-      dialog.close();
-
-      if (elementoAnterior?.isConnected) {
-        elementoAnterior.focus();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -204,15 +184,12 @@ export function CursoModal({
   }
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
       className="cursos__modal"
-      aria-labelledby={`${id}-titulo`}
-      aria-describedby={`${id}-descripcion`}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        cerrar();
-      }}
+      ariaLabelledby={`${id}-titulo`}
+      ariaDescribedby={`${id}-descripcion`}
+      bloqueado={guardando}
+      onCerrar={cerrar}
     >
       <form
         className="cursos__formulario"
@@ -417,6 +394,6 @@ export function CursoModal({
           </Boton>
         </div>
       </form>
-    </dialog>
+    </Modal>
   );
 }

@@ -6,6 +6,7 @@ import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
 import { GenerarPagosDocentes } from "../components/GenerarPagosDocentes";
+import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./PagosDocentesPage.css";
 
@@ -36,25 +37,12 @@ const estados = {
   RETRASO: "En retraso",
 };
 
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
-
 const fechaPago = new Intl.DateTimeFormat("es-PE", {
   timeZone: "America/Lima",
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
 });
-
-function normalizar(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
 
 export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
   const [pagos, setPagos] = useState<PagoDocente[]>([]);
