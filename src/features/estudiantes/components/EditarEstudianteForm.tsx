@@ -4,6 +4,7 @@ import type { Estudiante } from "../estudiantes.types";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Boton } from "../../../shared/components/Boton";
 import { useValidacion } from "../../../shared/hooks/useValidacion";
+import { fechaHoy } from "../../../shared/utils/formato";
 
 interface EditarEstudianteFormProps {
   token: string;
@@ -12,16 +13,6 @@ interface EditarEstudianteFormProps {
   onActualizado: (estudiante: Estudiante) => void;
   onCancelar: () => void;
   onGuardando: (guardando: boolean) => void;
-}
-
-function fechaHoy() {
-  const hoy = new Date();
-
-  return [
-    hoy.getFullYear(),
-    String(hoy.getMonth() + 1).padStart(2, "0"),
-    String(hoy.getDate()).padStart(2, "0"),
-  ].join("-");
 }
 
 export function EditarEstudianteForm({

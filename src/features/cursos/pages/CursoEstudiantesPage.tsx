@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Boton } from "../../../shared/components/Boton";
+import { Paginacion } from "../../../shared/components/Paginacion";
+import { normalizar } from "../../../shared/utils/formato";
 import { obtenerEstudiantesPorCurso } from "../cursos.service";
 import type { Curso, EstudianteCurso } from "../cursos.types";
 import { RegistroNotasModal } from "../../calificaciones/components/RegistroNotasModal";
@@ -17,14 +19,6 @@ interface CursoEstudiantesPageProps {
 }
 
 const TAMANO_PAGINA = 10;
-
-function normalizar(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
 
 export function CursoEstudiantesPage({
   token,
@@ -320,30 +314,12 @@ export function CursoEstudiantesPage({
               </div>
 
               {totalPaginas > 1 && (
-                <nav
-                  className="paginacion"
-                  aria-label="Paginación de estudiantes"
-                >
-                  <p>
-                    Página {paginaActual} de {totalPaginas}
-                  </p>
-
-                  <div className="paginacion__controles">
-                    <Boton
-                      disabled={paginaActual === 1}
-                      onClick={() => setPagina(paginaActual - 1)}
-                    >
-                      Anterior
-                    </Boton>
-
-                    <Boton
-                      disabled={paginaActual === totalPaginas}
-                      onClick={() => setPagina(paginaActual + 1)}
-                    >
-                      Siguiente
-                    </Boton>
-                  </div>
-                </nav>
+                <Paginacion
+                  pagina={paginaActual}
+                  total={filtrados.length}
+                  porPagina={TAMANO_PAGINA}
+                  onCambiar={setPagina}
+                />
               )}
             </>
           )}

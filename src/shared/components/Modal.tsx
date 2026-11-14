@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import "./Modal.css";
 
 interface Props {
-  abierto: boolean;
+  abierto?: boolean;
   onCerrar: () => void;
   bloqueado?: boolean;
   ariaLabelledby?: string;
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function Modal({
-  abierto,
+  abierto = true,
   onCerrar,
   bloqueado = false,
   ariaLabelledby,
@@ -40,7 +40,9 @@ export function Modal({
         if (dialog.open) {
           dialog.close();
         }
-        focoAnterior?.focus();
+        if (focoAnterior?.isConnected) {
+          focoAnterior.focus();
+        }
       };
     }
 
@@ -56,14 +58,14 @@ export function Modal({
       aria-labelledby={ariaLabelledby}
       aria-describedby={ariaDescribedby}
       onCancel={(evento) => {
+        evento.preventDefault();
         if (bloqueado) {
-          evento.preventDefault();
           return;
         }
         onCerrar();
       }}
     >
-      {abierto ? children : null}
+      {children}
     </dialog>
   );
 }

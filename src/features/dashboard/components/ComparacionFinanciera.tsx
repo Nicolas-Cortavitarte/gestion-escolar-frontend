@@ -1,5 +1,6 @@
 import { useId } from "react";
 import type { ResumenFinancieroMes } from "../dashboard.types";
+import { moneda as formatoSoles } from "../../../shared/utils/formato";
 import "./ComparacionFinanciera.css";
 
 interface ComparacionFinancieraProps {
@@ -8,11 +9,6 @@ interface ComparacionFinancieraProps {
   seleccion?: "ingresos" | "egresos";
   onSeleccionar?: (tipo: "ingresos" | "egresos") => void;
 }
-
-const formatoSoles = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
 
 export function ComparacionFinanciera({
   resumen,

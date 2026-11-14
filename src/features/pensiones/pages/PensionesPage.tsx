@@ -7,6 +7,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./PensionesPage.css";
 
@@ -36,19 +37,6 @@ const estados = {
   PAGADO: "Pagada",
   EN_MORA: "En mora",
 };
-
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
-
-function normalizar(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
 
 export function PensionesPage({ token }: PensionesPageProps) {
   const [pensiones, setPensiones] = useState<Pension[]>([]);

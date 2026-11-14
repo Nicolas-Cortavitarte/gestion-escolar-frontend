@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef } from "react";
+import { useId, useState } from "react";
 import { DocenteForm } from "./DocenteForm";
 import type { Docente } from "../docentes.types";
+import { Modal } from "../../../shared/components/Modal";
 
 interface DocenteModalProps {
   token: string;
@@ -15,43 +16,19 @@ export function DocenteModal({
   onGuardado,
   onCerrar,
 }: DocenteModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const guardandoRef = useRef(false);
+  const [guardando, setGuardando] = useState(false);
   const tituloId = useId();
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const elementoAnterior = document.activeElement;
-
-    if (dialog && !dialog.open) dialog.showModal();
-
-    return () => {
-      dialog?.close();
-
-      if (
-        elementoAnterior instanceof HTMLElement &&
-        elementoAnterior.isConnected
-      ) {
-        elementoAnterior.focus();
-      } else {
-        document.getElementById("docentes-busqueda")?.focus();
-      }
-    };
-  }, []);
-
   function cerrar() {
-    if (!guardandoRef.current) onCerrar();
+    if (!guardando) onCerrar();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
       className="docentes__modal"
-      aria-labelledby={tituloId}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        cerrar();
-      }}
+      ariaLabelledby={tituloId}
+      bloqueado={guardando}
+      onCerrar={cerrar}
     >
       <DocenteForm
         token={token}
@@ -59,10 +36,8 @@ export function DocenteModal({
         tituloId={tituloId}
         onGuardado={onGuardado}
         onCancelar={cerrar}
-        onGuardando={(valor) => {
-          guardandoRef.current = valor;
-        }}
+        onGuardando={setGuardando}
       />
-    </dialog>
+    </Modal>
   );
 }

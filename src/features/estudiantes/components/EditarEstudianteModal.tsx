@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef } from "react";
+import { useId, useState } from "react";
 import type { Estudiante } from "../estudiantes.types";
+import { Modal } from "../../../shared/components/Modal";
 import { EditarEstudianteForm } from "./EditarEstudianteForm";
 
 interface EditarEstudianteModalProps {
@@ -15,41 +16,19 @@ export function EditarEstudianteModal({
   onActualizado,
   onCerrar,
 }: EditarEstudianteModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const guardandoRef = useRef(false);
+  const [guardando, setGuardando] = useState(false);
   const tituloId = useId();
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const elementoAnterior = document.activeElement;
-
-    if (dialog && !dialog.open) dialog.showModal();
-
-    return () => {
-      dialog?.close();
-
-      if (
-        elementoAnterior instanceof HTMLElement &&
-        elementoAnterior.isConnected
-      ) {
-        elementoAnterior.focus();
-      }
-    };
-  }, []);
-
   function cerrar() {
-    if (!guardandoRef.current) onCerrar();
+    if (!guardando) onCerrar();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
       className="estudiantes-page__modal"
-      aria-labelledby={tituloId}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        cerrar();
-      }}
+      ariaLabelledby={tituloId}
+      bloqueado={guardando}
+      onCerrar={cerrar}
     >
       <EditarEstudianteForm
         token={token}
@@ -57,10 +36,8 @@ export function EditarEstudianteModal({
         tituloId={tituloId}
         onActualizado={onActualizado}
         onCancelar={cerrar}
-        onGuardando={(valor) => {
-          guardandoRef.current = valor;
-        }}
+        onGuardando={setGuardando}
       />
-    </dialog>
+    </Modal>
   );
 }

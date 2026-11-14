@@ -6,37 +6,16 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { TarjetaResumen } from "../../../shared/components/TarjetaResumen";
 import { ComparacionFinanciera } from "../../dashboard/components/ComparacionFinanciera";
+import {
+  moneda,
+  rangoMesActual,
+  mostrarFecha,
+} from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./ReporteFinancieroPage.css";
 
 interface ReporteFinancieroPageProps {
   token: string;
-}
-
-const moneda = new Intl.NumberFormat("es-PE", {
-  style: "currency",
-  currency: "PEN",
-});
-
-function rangoMesActual() {
-  const partes = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(new Date());
-
-  const anio = partes.find((parte) => parte.type === "year")!.value;
-  const mes = partes.find((parte) => parte.type === "month")!.value;
-  const ultimoDia = new Date(Number(anio), Number(mes), 0).getDate();
-
-  return {
-    desde: `${anio}-${mes}-01`,
-    hasta: `${anio}-${mes}-${String(ultimoDia).padStart(2, "0")}`,
-  };
-}
-
-function mostrarFecha(fecha: string) {
-  return fecha.split("-").reverse().join("/");
 }
 
 export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
