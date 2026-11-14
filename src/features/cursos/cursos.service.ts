@@ -1,36 +1,7 @@
 import type { Curso, CursoRequest, EstudianteCurso } from "./cursos.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-async function comprobarRespuesta(respuesta: Response): Promise<void> {
-  if (respuesta.ok) return;
-
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para realizar esta operación.");
-  }
-
-  let mensaje = "No se pudo completar la operación de cursos.";
-
-  try {
-    const datos: unknown = await respuesta.json();
-
-    if (
-      typeof datos === "object" &&
-      datos !== null &&
-      "message" in datos &&
-      typeof datos.message === "string"
-    ) {
-      mensaje = datos.message;
-    }
-  } catch {
-    // Conserva el mensaje general si la respuesta no contiene JSON.
-  }
-
-  throw new Error(mensaje);
-}
+const MENSAJE_ERROR_CURSOS = "No se pudo completar la operación de cursos.";
 
 export async function obtenerCursos(token: string): Promise<Curso[]> {
   const respuesta = await fetchApi(`${API_URL}/api/v1/cursos`, {
@@ -39,7 +10,7 @@ export async function obtenerCursos(token: string): Promise<Curso[]> {
     },
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_CURSOS);
 
   return (await respuesta.json()) as Curso[];
 }
@@ -57,7 +28,7 @@ export async function crearCurso(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_CURSOS);
 
   return (await respuesta.json()) as Curso;
 }
@@ -76,7 +47,7 @@ export async function actualizarCurso(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_CURSOS);
 
   return (await respuesta.json()) as Curso;
 }
@@ -88,7 +59,7 @@ export async function obtenerMisCursos(token: string): Promise<Curso[]> {
     },
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_CURSOS);
 
   return (await respuesta.json()) as Curso[];
 }
@@ -106,7 +77,7 @@ export async function obtenerEstudiantesPorCurso(
     },
   );
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_CURSOS);
 
   return (await respuesta.json()) as EstudianteCurso[];
 }
