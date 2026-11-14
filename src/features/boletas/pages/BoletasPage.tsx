@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { toast } from "sonner";
 import { obtenerMatriculas } from "../../matriculas/matriculas.service";
 import type { Matricula } from "../../matriculas/matriculas.types";
 import { obtenerBoleta } from "../boletas.service";
+import { calcularResumenFinal } from "../registro-boleta.service";
 import type { Boleta } from "../boletas.types";
 import { BoletaVista } from "../components/BoletaVista";
 import { RegistroNotasModal } from "../../calificaciones/components/RegistroNotasModal";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { Skeleton } from "../../../shared/components/Skeleton";
 import { normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./BoletasPage.css";
@@ -27,12 +30,14 @@ export function BoletasPage({ token }: BoletasPageProps) {
   const [matriculaId, setMatriculaId] = useState("");
   const [boleta, setBoleta] = useState<Boleta | null>(null);
   const [consultando, setConsultando] = useState(false);
+  const [calculandoCierre, setCalculandoCierre] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [matriculaNotas, setMatriculaNotas] = useState<Matricula | null>(null);
 
   const consultaRef = useRef(0);
   const consultandoRef = useRef(false);
+  const calculandoRef = useRef(false);
   const [ultimaConsulta, setUltimaConsulta] = useState<Matricula | null>(null);
 
   useEffect(() => {
@@ -190,6 +195,38 @@ export function BoletasPage({ token }: BoletasPageProps) {
     }
   }
 
+  async function procesarCierreAnual() {
+    if (!boleta || consultandoRef.current || calculandoRef.current) return;
+
+    calculandoRef.current = true;
+    setCalculandoCierre(true);
+    setError("");
+    setMensaje("");
+
+    try {
+      await calcularResumenFinal(token, boleta.estudianteId, boleta.anioLectivo);
+      const actualizada = await obtenerBoleta(
+        token,
+        boleta.estudianteId,
+        boleta.anioLectivo,
+      );
+      setBoleta(actualizada);
+      const textoExito =
+        "El resumen final del año lectivo se calculó correctamente.";
+      setMensaje(textoExito);
+      toast.success(textoExito);
+    } catch (fallo: unknown) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo calcular el resumen final.",
+      );
+    } finally {
+      calculandoRef.current = false;
+      setCalculandoCierre(false);
+    }
+  }
+
   return (
     <section className="boletas-page">
       <header className="boletas-page__encabezado">
@@ -327,19 +364,47 @@ export function BoletasPage({ token }: BoletasPageProps) {
       )}
 
       {consultando && (
-        <p role="status" className="boletas-page__carga">
-          Cargando boleta...
-        </p>
+        <div
+          role="status"
+          aria-label="Cargando boleta"
+          className="boleta"
+        >
+          <Skeleton ancho="45%" alto="1.75rem" />
+          <div style={{ marginTop: "1rem", display: "grid", gap: "0.75rem" }}>
+            <Skeleton ancho="100%" alto="2.5rem" />
+            <Skeleton ancho="100%" alto="8rem" />
+            <Skeleton ancho="100%" alto="6rem" />
+          </div>
+        </div>
       )}
 
       {boleta && (
         <>
           <div className="boletas-page__acciones">
-            <Boton variante="principal" onClick={abrirRegistroEvaluaciones}>
+            <Boton
+              variante="principal"
+              onClick={abrirRegistroEvaluaciones}
+              disabled={calculandoCierre}
+            >
               Registrar evaluaciones
             </Boton>
 
-            <Boton onClick={() => window.print()}>Imprimir boleta</Boton>
+            <Boton
+              onClick={() => {
+                void procesarCierreAnual();
+              }}
+              cargando={calculandoCierre}
+              textoCargando="Calculando cierre..."
+            >
+              Calcular cierre anual
+            </Boton>
+
+            <Boton
+              onClick={() => window.print()}
+              disabled={calculandoCierre}
+            >
+              Imprimir boleta
+            </Boton>
           </div>
 
           <BoletaVista boleta={boleta} />

@@ -162,7 +162,17 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
         </Boton>
       </form>
 
-      {cargando && <p role="status">Cargando reporte financiero...</p>}
+      {cargando && (
+        <div
+          className="reporte-financiero__resumen"
+          role="status"
+          aria-label="Cargando reporte financiero"
+        >
+          <TarjetaResumen titulo="Total de ingresos" valor={null} />
+          <TarjetaResumen titulo="Total de egresos" valor={null} />
+          <TarjetaResumen titulo="Balance del periodo" valor={null} />
+        </div>
+      )}
 
       {!cargando && error && (
         <div className="estado-listado">

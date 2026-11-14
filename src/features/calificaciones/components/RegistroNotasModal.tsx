@@ -19,6 +19,7 @@ import {
 import type { Bimestre } from "../notas.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
+import { Modal } from "../../../shared/components/Modal";
 import "../../../styles/listados.css";
 import "../components/RegistroNotasModal.css";
 
@@ -170,7 +171,6 @@ export function RegistroNotasModal({
   modo = "admin",
   cursoInicialId = "",
 }: RegistroNotasModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const guardandoRef = useRef(false);
   const huboCambiosRef = useRef(false);
   const revisadosRef = useRef(new Set<string>());
@@ -201,26 +201,6 @@ export function RegistroNotasModal({
   ).length;
 
   const hayPendientes = cantidadPendientes > 0;
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const elementoAnterior =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    if (!dialog.open) dialog.showModal();
-
-    return () => {
-      dialog.close();
-
-      if (elementoAnterior?.isConnected) {
-        elementoAnterior.focus();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -560,7 +540,9 @@ export function RegistroNotasModal({
 
         huboCambiosRef.current = true;
         setOriginales({ ...valores });
-        setMensaje("Conducta y asistencia guardadas correctamente.");
+        const textoConducta = "Conducta y asistencia guardadas correctamente.";
+        setMensaje(textoConducta);
+        toast.success(textoConducta);
       } else {
         await guardarEvaluacionPadre(token, matricula.estudianteId, {
           anioLectivo: matricula.anioLectivo,
@@ -574,7 +556,9 @@ export function RegistroNotasModal({
 
         huboCambiosRef.current = true;
         setOriginales({ ...valores });
-        setMensaje("Evaluación del padre guardada correctamente.");
+        const textoPadre = "Evaluación del padre guardada correctamente.";
+        setMensaje(textoPadre);
+        toast.success(textoPadre);
       }
     } catch (fallo: unknown) {
       const detalle = mensajeError(fallo);
@@ -591,15 +575,12 @@ export function RegistroNotasModal({
   }
 
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
       className="registro-evaluaciones"
-      aria-labelledby={`${id}-titulo`}
-      aria-describedby={`${id}-estudiante`}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        cerrar();
-      }}
+      ariaLabelledby={`${id}-titulo`}
+      ariaDescribedby={`${id}-estudiante`}
+      bloqueado={guardando}
+      onCerrar={cerrar}
     >
       <h2 id={`${id}-titulo`}>Registrar evaluaciones</h2>
 
@@ -629,14 +610,16 @@ export function RegistroNotasModal({
 
       <div
         className="registro-evaluaciones__pestanas"
-        role="group"
+        role="tablist"
         aria-label="Apartados de evaluación"
       >
         {pestañas.map(({ id: clave, etiqueta }) => (
           <button
             key={clave}
+            id={`${id}-tab-${clave}`}
             type="button"
-            aria-pressed={pestaña === clave}
+            role="tab"
+            aria-selected={pestaña === clave}
             aria-controls={`${id}-contenido`}
             disabled={guardando}
             onClick={() => cambiarPestaña(clave)}
@@ -648,7 +631,8 @@ export function RegistroNotasModal({
 
       <section
         id={`${id}-contenido`}
-        aria-label={pestañas.find((item) => item.id === pestaña)?.etiqueta}
+        role="tabpanel"
+        aria-labelledby={`${id}-tab-${pestaña}`}
         aria-busy={cargando || guardando}
       >
         {pestaña === "notas" && (
@@ -785,33 +769,63 @@ export function RegistroNotasModal({
                                   : ""
                               }`}
                             >
-                              <label htmlFor={campoId}>{campo.etiqueta}</label>
+                              {campo.tipo === "nota" ? (
+                                <span
+                                  id={`${campoId}-etiqueta`}
+                                  className="registro-evaluaciones__etiqueta"
+                                >
+                                  {campo.etiqueta}
+                                </span>
+                              ) : (
+                                <label htmlFor={campoId}>
+                                  {campo.etiqueta}
+                                </label>
+                              )}
 
                               {campo.tipo === "nota" ? (
-                                <select
-                                  id={campoId}
-                                  name={campo.clave}
-                                  value={valores[campo.clave] ?? ""}
-                                  onChange={(evento) =>
-                                    actualizarValor(campo, evento.target.value)
-                                  }
+                                <div
+                                  className="registro-evaluaciones__pildoras-nota"
+                                  role="radiogroup"
+                                  aria-labelledby={`${campoId}-etiqueta`}
                                 >
-                                  <option
-                                    value=""
-                                    disabled={
-                                      pestaña === "notas" &&
-                                      Boolean(originales[campo.clave])
-                                    }
-                                  >
-                                    Sin evaluar
-                                  </option>
-
-                                  {notasDisponibles.map((nota) => (
-                                    <option key={nota} value={nota}>
-                                      {nota}
-                                    </option>
-                                  ))}
-                                </select>
+                                  {!(
+                                    pestaña === "notas" &&
+                                    Boolean(originales[campo.clave])
+                                  ) && (
+                                    <button
+                                      type="button"
+                                      role="radio"
+                                      aria-checked={
+                                        (valores[campo.clave] ?? "") === ""
+                                      }
+                                      className="registro-evaluaciones__pildora registro-evaluaciones__pildora--vacia"
+                                      disabled={guardando}
+                                      onClick={() => actualizarValor(campo, "")}
+                                      title="Sin evaluar"
+                                    >
+                                      —
+                                    </button>
+                                  )}
+                                  {notasDisponibles.map((nota) => {
+                                    const activa =
+                                      (valores[campo.clave] ?? "") === nota;
+                                    return (
+                                      <button
+                                        key={nota}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={activa}
+                                        className="registro-evaluaciones__pildora"
+                                        disabled={guardando}
+                                        onClick={() =>
+                                          actualizarValor(campo, nota)
+                                        }
+                                      >
+                                        {nota}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               ) : (
                                 <>
                                   <textarea
@@ -912,6 +926,6 @@ export function RegistroNotasModal({
           Cerrar
         </Boton>
       </footer>
-    </dialog>
+    </Modal>
   );
 }
