@@ -23,7 +23,7 @@ export async function pagarDocente(
   id: string,
 ): Promise<PagoDocente> {
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/pagos-docentes/${id}/pagar`,
+    `${API_URL}/api/v1/pagos-docentes/${encodeURIComponent(id)}/pagar`,
     {
       method: "PATCH",
       headers: {

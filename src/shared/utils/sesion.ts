@@ -3,7 +3,13 @@ import type { LoginResponse } from "../../features/auth/auth.types";
 const CLAVE_SESION = "lst.sesion";
 export const EVENTO_SESION_EXPIRADA = "lst:sesion-expirada";
 
-export function vencimientoToken(token: string): number | null {
+interface PayloadToken {
+  exp: number;
+  rol?: string;
+  sub?: string;
+}
+
+function decodificarPayloadToken(token: string): PayloadToken | null {
   try {
     const partes = token.split(".");
     if (partes.length !== 3) return null;
@@ -24,10 +30,15 @@ export function vencimientoToken(token: string): number | null {
       return null;
     }
 
-    return payload.exp * 1000;
+    return payload as PayloadToken;
   } catch {
     return null;
   }
+}
+
+export function vencimientoToken(token: string): number | null {
+  const payload = decodificarPayloadToken(token);
+  return payload ? payload.exp * 1000 : null;
 }
 
 export function conservarSesion(sesion: LoginResponse | null): void {
@@ -64,9 +75,13 @@ export function recuperarSesion(): LoginResponse | null {
       return null;
     }
 
-    const vence = vencimientoToken(datos.token);
+    const payload = decodificarPayloadToken(datos.token);
 
-    if (vence === null || vence <= Date.now()) {
+    if (
+      payload === null ||
+      payload.exp * 1000 <= Date.now() ||
+      (typeof payload.rol === "string" && payload.rol !== datos.rol)
+    ) {
       conservarSesion(null);
       return null;
     }

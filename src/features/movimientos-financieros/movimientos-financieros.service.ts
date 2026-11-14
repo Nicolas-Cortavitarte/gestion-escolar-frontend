@@ -54,7 +54,7 @@ export async function eliminarMovimiento(
   id: string,
 ): Promise<void> {
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/movimientos-financieros/${id}`,
+    `${API_URL}/api/v1/movimientos-financieros/${encodeURIComponent(id)}`,
     {
       method: "DELETE",
       headers: {

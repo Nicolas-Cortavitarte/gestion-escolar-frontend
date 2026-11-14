@@ -5,7 +5,7 @@ import type {
   CrearMatriculaRequest,
   Matricula,
 } from "./matriculas.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
 export async function crearInscripcion(
   token: string,
@@ -20,17 +20,10 @@ export async function crearInscripcion(
     body: JSON.stringify(datos),
   });
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para registrar matrículas.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo completar la matrícula. Revisa los datos.");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo completar la matrícula. Revisa los datos.",
+  );
 
   return (await respuesta.json()) as InscripcionResponse;
 }
@@ -52,9 +45,7 @@ export async function buscarApoderadoPorDni(
     throw new Error("No se encontró un apoderado con ese DNI.");
   }
 
-  if (!respuesta.ok) {
-    throw new Error("No se pudo consultar al apoderado.");
-  }
+  await asegurarRespuestaOk(respuesta, "No se pudo consultar al apoderado.");
 
   return (await respuesta.json()) as ApoderadoExistente;
 }
@@ -72,33 +63,7 @@ export async function crearMatricula(
     body: JSON.stringify(datos),
   });
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para registrar matrículas.");
-  }
-
-  if (!respuesta.ok) {
-    let mensaje = "No se pudo registrar la matrícula.";
-
-    try {
-      const error: unknown = await respuesta.json();
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error &&
-        typeof error.message === "string"
-      ) {
-        mensaje = error.message;
-      }
-    } catch {
-      // Conserva el mensaje general si la respuesta no contiene JSON.
-    }
-
-    throw new Error(mensaje);
-  }
+  await asegurarRespuestaOk(respuesta, "No se pudo registrar la matrícula.");
 }
 
 export async function obtenerMatriculas(token: string): Promise<Matricula[]> {
@@ -108,17 +73,10 @@ export async function obtenerMatriculas(token: string): Promise<Matricula[]> {
     },
   });
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para consultar matrículas.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo cargar la lista de matrículas.");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo cargar la lista de matrículas.",
+  );
 
   return (await respuesta.json()) as Matricula[];
 }
@@ -128,7 +86,7 @@ export async function pagarMatricula(
   id: string,
 ): Promise<Matricula> {
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/matriculas/${id}/pagar-matricula`,
+    `${API_URL}/api/v1/matriculas/${encodeURIComponent(id)}/pagar-matricula`,
     {
       method: "PATCH",
       headers: {
@@ -137,34 +95,10 @@ export async function pagarMatricula(
     },
   );
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para registrar pagos.");
-  }
-
-  if (!respuesta.ok) {
-    let mensaje = "No se pudo registrar el pago de matrícula.";
-
-    try {
-      const datos: unknown = await respuesta.json();
-
-      if (
-        typeof datos === "object" &&
-        datos !== null &&
-        "message" in datos &&
-        typeof datos.message === "string"
-      ) {
-        mensaje = datos.message;
-      }
-    } catch {
-      // Conserva el mensaje general si la respuesta no contiene JSON.
-    }
-
-    throw new Error(mensaje);
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo registrar el pago de matrícula.",
+  );
 
   return (await respuesta.json()) as Matricula;
 }

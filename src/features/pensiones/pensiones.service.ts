@@ -19,7 +19,9 @@ export async function pagarPension(
   token: string,
   id: string,
 ): Promise<Pension> {
-  const respuesta = await fetchApi(`${API_URL}/api/v1/pensiones/${id}/pagar`, {
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/pensiones/${encodeURIComponent(id)}/pagar`,
+    {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,

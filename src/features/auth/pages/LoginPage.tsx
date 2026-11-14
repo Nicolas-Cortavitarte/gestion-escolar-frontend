@@ -23,7 +23,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   function validarCorreo(valor: string) {
     if (!valor.trim()) return "Ingresa tu correo electrónico.";
 
-    if (!/^[^\s@]+@[^\s@]+$/.test(valor.trim())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim())) {
       return "Ingresa un correo electrónico válido.";
     }
 
@@ -131,10 +131,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <div className="login-page__contrasena">
               <CampoEntrada
                 id="contrasena"
+                name="contrasena"
                 etiqueta="Contraseña"
                 type={mostrarContrasena ? "text" : "password"}
                 value={contrasena}
-                onChange={(evento) => setContrasena(evento.target.value)}
+                onChange={(evento) => {
+                  setContrasena(evento.target.value);
+                  setError("");
+                }}
+                onBlur={() => {
+                  setTocados((actuales) => ({ ...actuales, contrasena: true }));
+                }}
+                error={tocados.contrasena ? errorContrasena : ""}
                 placeholder="Ingresa tu contraseña"
                 autoComplete="current-password"
                 disabled={cargando}

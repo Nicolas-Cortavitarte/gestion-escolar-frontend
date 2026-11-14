@@ -5,7 +5,7 @@ import type {
   ReporteConducta,
   ReporteConductaRequest,
 } from "./registro-boleta.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
 async function solicitar<T>(
   token: string,
@@ -22,34 +22,7 @@ async function solicitar<T>(
     ...(datos === undefined ? {} : { body: JSON.stringify(datos) }),
   });
 
-  if (!respuesta.ok) {
-    if (respuesta.status === 401) {
-      throw new Error("Tu sesión expiró. Vuelve a iniciar sesión.");
-    }
-
-    if (respuesta.status === 403) {
-      throw new Error("No tienes permiso para realizar esta acción.");
-    }
-
-    let mensaje = mensajeError;
-
-    try {
-      const error: unknown = await respuesta.json();
-
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error &&
-        typeof error.message === "string"
-      ) {
-        mensaje = error.message;
-      }
-    } catch {
-      // Conserva el mensaje si la respuesta no contiene JSON.
-    }
-
-    throw new Error(mensaje);
-  }
+  await asegurarRespuestaOk(respuesta, mensajeError);
 
   const contenido = respuesta.headers.get("content-type") ?? "";
 
@@ -69,7 +42,7 @@ export async function obtenerReportesConducta(
 ): Promise<ReporteConducta[]> {
   const reportes = await solicitar<ReporteConducta[]>(
     token,
-    `/api/v1/estudiantes/${estudianteId}/reportes-conducta`,
+    `/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/reportes-conducta`,
     "No se pudieron cargar los registros de conducta y asistencia.",
   );
 
@@ -83,7 +56,7 @@ export function guardarReporteConducta(
 ): Promise<ReporteConducta> {
   return solicitar<ReporteConducta>(
     token,
-    `/api/v1/estudiantes/${estudianteId}/reportes-conducta`,
+    `/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/reportes-conducta`,
     "No se pudo guardar la conducta y asistencia.",
     datos,
   );
@@ -96,7 +69,7 @@ export async function obtenerEvaluacionesPadre(
 ): Promise<EvaluacionPadre[]> {
   const evaluaciones = await solicitar<EvaluacionPadre[]>(
     token,
-    `/api/v1/estudiantes/${estudianteId}/evaluacion-padre`,
+    `/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/evaluacion-padre`,
     "No se pudieron cargar las evaluaciones del padre.",
   );
 
@@ -112,7 +85,7 @@ export function guardarEvaluacionPadre(
 ): Promise<EvaluacionPadre> {
   return solicitar<EvaluacionPadre>(
     token,
-    `/api/v1/estudiantes/${estudianteId}/evaluacion-padre`,
+    `/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/evaluacion-padre`,
     "No se pudo guardar la evaluación del padre.",
     datos,
   );
@@ -128,7 +101,7 @@ export async function calcularResumenFinal(
   });
 
   const respuesta = await fetchApi(
-    `${API_URL}/api/v1/estudiantes/${estudianteId}/resumen-final/calcular?${parametros}`,
+    `${API_URL}/api/v1/estudiantes/${encodeURIComponent(estudianteId)}/resumen-final/calcular?${parametros}`,
     {
       method: "POST",
       headers: {
@@ -137,34 +110,7 @@ export async function calcularResumenFinal(
     },
   );
 
-  if (!respuesta.ok) {
-    if (respuesta.status === 401) {
-      throw new Error("Tu sesión expiró. Vuelve a iniciar sesión.");
-    }
-
-    if (respuesta.status === 403) {
-      throw new Error("No tienes permiso para calcular el resumen final.");
-    }
-
-    let mensaje = "No se pudo calcular el resumen final.";
-
-    try {
-      const fallo: unknown = await respuesta.json();
-
-      if (
-        typeof fallo === "object" &&
-        fallo !== null &&
-        "message" in fallo &&
-        typeof fallo.message === "string"
-      ) {
-        mensaje = fallo.message;
-      }
-    } catch {
-      // Conserva el mensaje si la respuesta no contiene JSON.
-    }
-
-    throw new Error(mensaje);
-  }
+  await asegurarRespuestaOk(respuesta, "No se pudo calcular el resumen final.");
 
   return (await respuesta.json()) as ResumenFinal;
 }

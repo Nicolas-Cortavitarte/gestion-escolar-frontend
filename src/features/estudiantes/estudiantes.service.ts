@@ -2,7 +2,7 @@ import type {
   ActualizarEstudianteRequest,
   Estudiante,
 } from "./estudiantes.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
 export async function obtenerEstudiantes(token: string): Promise<Estudiante[]> {
   const respuesta = await fetchApi(`${API_URL}/api/v1/estudiantes`, {
@@ -11,17 +11,10 @@ export async function obtenerEstudiantes(token: string): Promise<Estudiante[]> {
     },
   });
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para consultar estudiantes.");
-  }
-
-  if (!respuesta.ok) {
-    throw new Error("No se pudo cargar la lista de estudiantes.");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo cargar la lista de estudiantes.",
+  );
 
   return (await respuesta.json()) as Estudiante[];
 }
@@ -43,21 +36,14 @@ export async function actualizarEstudiante(
     },
   );
 
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para editar estudiantes.");
-  }
-
   if (respuesta.status === 404) {
     throw new Error("El estudiante ya no existe.");
   }
 
-  if (!respuesta.ok) {
-    throw new Error("No se pudo actualizar el estudiante. Revisa los datos.");
-  }
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo actualizar el estudiante. Revisa los datos.",
+  );
 
   return (await respuesta.json()) as Estudiante;
 }
