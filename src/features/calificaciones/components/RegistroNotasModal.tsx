@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { FormEvent } from "react";
 import { obtenerCursos, obtenerMisCursos } from "../../cursos/cursos.service";
 import { obtenerCompetenciasPorCurso } from "../../competencias/competencias.service";
@@ -491,42 +492,52 @@ export function RegistroNotasModal({
           );
         }
 
-        for (const campo of cambios) {
-          const calificativo = convertirNota(valores[campo.clave]);
+        const guardadas = await Promise.all(
+          cambios.map(async (campo) => {
+            const calificativo = convertirNota(valores[campo.clave]);
 
-          if (!calificativo) {
-            throw new Error("Selecciona una calificación.");
-          }
+            if (!calificativo) {
+              throw new Error("Selecciona una calificación.");
+            }
 
-          const guardada = await guardarNotaCompetencia(
-            token,
-            matricula.estudianteId,
-            {
-              competenciaId: campo.clave,
-              bimestre,
-              calificativo,
-            },
-          );
+            const guardada = await guardarNotaCompetencia(
+              token,
+              matricula.estudianteId,
+              {
+                competenciaId: campo.clave,
+                bimestre,
+                calificativo,
+              },
+            );
 
-          huboCambiosRef.current = true;
-          notasGuardadas += 1;
-
-          setOriginales((actuales) => ({
-            ...actuales,
-            [campo.clave]: guardada.calificativo,
-          }));
-
-          setValores((actuales) => ({
-            ...actuales,
-            [campo.clave]: guardada.calificativo,
-          }));
-        }
-
-        setMensaje(
-          `${notasGuardadas} ${
-            notasGuardadas === 1 ? "nota guardada" : "notas guardadas"
-          } correctamente.`,
+            return { clave: campo.clave, calificativo: guardada.calificativo };
+          }),
         );
+
+        huboCambiosRef.current = true;
+        notasGuardadas = guardadas.length;
+
+        setOriginales((actuales) => {
+          const siguientes = { ...actuales };
+          for (const item of guardadas) {
+            siguientes[item.clave] = item.calificativo;
+          }
+          return siguientes;
+        });
+
+        setValores((actuales) => {
+          const siguientes = { ...actuales };
+          for (const item of guardadas) {
+            siguientes[item.clave] = item.calificativo;
+          }
+          return siguientes;
+        });
+
+        const textoExito = `${notasGuardadas} ${
+          notasGuardadas === 1 ? "nota guardada" : "notas guardadas"
+        } correctamente.`;
+        setMensaje(textoExito);
+        toast.success(textoExito);
       } else if (pestaña === "conducta") {
         await guardarReporteConducta(token, matricula.estudianteId, {
           anioLectivo: matricula.anioLectivo,
