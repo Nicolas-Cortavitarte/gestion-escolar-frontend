@@ -1,4 +1,5 @@
 import { Boton } from "./Boton";
+import { Skeleton } from "./Skeleton";
 import "./TarjetaResumen.css";
 
 interface TarjetaResumenProps {
@@ -27,9 +28,9 @@ export function TarjetaResumen({
           {onReintentar && <Boton onClick={onReintentar}>Reintentar</Boton>}
         </div>
       ) : cargando ? (
-        <p className="tarjeta-resumen__cargando" role="status">
-          Cargando...
-        </p>
+        <div className="tarjeta-resumen__cargando" role="status" aria-label="Cargando">
+          <Skeleton ancho="55%" alto="1.75rem" />
+        </div>
       ) : (
         <p className="tarjeta-resumen__valor">{valor}</p>
       )}

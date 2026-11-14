@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
 import { AppRoutes } from "./app/routes/AppRoutes";
 import type { LoginResponse } from "./features/auth/auth.types";
 import {
@@ -76,6 +77,8 @@ function App() {
         onLogin={iniciarSesion}
         onLogout={cerrarSesion}
       />
+
+      <Toaster position="bottom-right" richColors closeButton />
     </>
   );
 }
