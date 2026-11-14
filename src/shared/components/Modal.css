@@ -1,0 +1,40 @@
+.modal-base {
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+
+.modal-base[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@starting-style {
+  .modal-base[open] {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+.modal-base::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+
+.modal-base[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .modal-base[open]::backdrop {
+    opacity: 0;
+  }
+}
