@@ -1,36 +1,8 @@
 import type { Competencia, CompetenciaRequest } from "./competencias.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-async function comprobarRespuesta(respuesta: Response): Promise<void> {
-  if (respuesta.ok) return;
-
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para gestionar competencias.");
-  }
-
-  let mensaje = "No se pudo completar la operación de competencias.";
-
-  try {
-    const datos: unknown = await respuesta.json();
-
-    if (
-      typeof datos === "object" &&
-      datos !== null &&
-      "message" in datos &&
-      typeof datos.message === "string"
-    ) {
-      mensaje = datos.message;
-    }
-  } catch {
-    // Conserva el mensaje general si la respuesta no contiene JSON.
-  }
-
-  throw new Error(mensaje);
-}
+const MENSAJE_ERROR_COMPETENCIAS =
+  "No se pudo completar la operación de competencias.";
 
 export async function obtenerCompetenciasPorCurso(
   token: string,
@@ -42,7 +14,7 @@ export async function obtenerCompetenciasPorCurso(
     },
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_COMPETENCIAS);
 
   const competencias = (await respuesta.json()) as Competencia[];
 
@@ -62,7 +34,7 @@ export async function crearCompetencia(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_COMPETENCIAS);
 
   return (await respuesta.json()) as Competencia;
 }
@@ -81,7 +53,7 @@ export async function actualizarCompetencia(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_COMPETENCIAS);
 
   return (await respuesta.json()) as Competencia;
 }

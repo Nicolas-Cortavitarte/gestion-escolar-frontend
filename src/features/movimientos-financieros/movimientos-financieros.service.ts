@@ -2,40 +2,9 @@ import type {
   MovimientoFinanciero,
   MovimientoFinancieroRequest,
 } from "./movimientos-financieros.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-async function comprobarRespuesta(respuesta: Response): Promise<void> {
-  if (respuesta.ok) return;
-
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error(
-      "No tienes permiso para gestionar movimientos financieros.",
-    );
-  }
-
-  let mensaje = "No se pudo completar la operación.";
-
-  try {
-    const datos: unknown = await respuesta.json();
-
-    if (
-      typeof datos === "object" &&
-      datos !== null &&
-      "message" in datos &&
-      typeof datos.message === "string"
-    ) {
-      mensaje = datos.message;
-    }
-  } catch {
-    // Conserva el mensaje general si la respuesta no contiene JSON.
-  }
-
-  throw new Error(mensaje);
-}
+const MENSAJE_ERROR_MOVIMIENTOS = "No se pudo completar la operación.";
 
 export async function obtenerMovimientos(
   token: string,
@@ -57,7 +26,7 @@ export async function obtenerMovimientos(
     },
   );
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_MOVIMIENTOS);
 
   return (await respuesta.json()) as MovimientoFinanciero[];
 }
@@ -75,7 +44,7 @@ export async function crearMovimiento(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_MOVIMIENTOS);
 
   return (await respuesta.json()) as MovimientoFinanciero;
 }
@@ -94,5 +63,5 @@ export async function eliminarMovimiento(
     },
   );
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_MOVIMIENTOS);
 }
