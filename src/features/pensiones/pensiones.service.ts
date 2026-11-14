@@ -1,36 +1,7 @@
 import type { Pension } from "./pensiones.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-async function comprobarRespuesta(respuesta: Response): Promise<void> {
-  if (respuesta.ok) return;
-
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para realizar esta operación.");
-  }
-
-  let mensaje = "No se pudo completar la operación de pensiones.";
-
-  try {
-    const datos: unknown = await respuesta.json();
-
-    if (
-      typeof datos === "object" &&
-      datos !== null &&
-      "message" in datos &&
-      typeof datos.message === "string"
-    ) {
-      mensaje = datos.message;
-    }
-  } catch {
-    // Conserva el mensaje general si no hay una respuesta JSON.
-  }
-
-  throw new Error(mensaje);
-}
+const MENSAJE_ERROR_PENSIONES = "No se pudo completar la operación de pensiones.";
 
 export async function obtenerPensiones(token: string): Promise<Pension[]> {
   const respuesta = await fetchApi(`${API_URL}/api/v1/pensiones`, {
@@ -39,7 +10,7 @@ export async function obtenerPensiones(token: string): Promise<Pension[]> {
     },
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_PENSIONES);
 
   return (await respuesta.json()) as Pension[];
 }
@@ -55,7 +26,7 @@ export async function pagarPension(
     },
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_PENSIONES);
 
   return (await respuesta.json()) as Pension;
 }

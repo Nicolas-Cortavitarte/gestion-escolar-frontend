@@ -1,36 +1,7 @@
 import type { Docente, DocenteRequest, DocenteUpdate } from "./docentes.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-async function comprobarRespuesta(respuesta: Response): Promise<void> {
-  if (respuesta.ok) return;
-
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  if (respuesta.status === 403) {
-    throw new Error("No tienes permiso para realizar esta operación.");
-  }
-
-  let mensaje = "No se pudo completar la operación de docentes.";
-
-  try {
-    const datos: unknown = await respuesta.json();
-
-    if (
-      typeof datos === "object" &&
-      datos !== null &&
-      "message" in datos &&
-      typeof datos.message === "string"
-    ) {
-      mensaje = datos.message;
-    }
-  } catch {
-    // Conserva el mensaje general si la respuesta no contiene JSON.
-  }
-
-  throw new Error(mensaje);
-}
+const MENSAJE_ERROR_DOCENTES = "No se pudo completar la operación de docentes.";
 
 export async function obtenerDocentes(token: string): Promise<Docente[]> {
   const respuesta = await fetchApi(`${API_URL}/api/v1/docentes`, {
@@ -39,7 +10,7 @@ export async function obtenerDocentes(token: string): Promise<Docente[]> {
     },
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_DOCENTES);
 
   return (await respuesta.json()) as Docente[];
 }
@@ -57,7 +28,7 @@ export async function crearDocente(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_DOCENTES);
 
   return (await respuesta.json()) as Docente;
 }
@@ -76,7 +47,7 @@ export async function actualizarDocente(
     body: JSON.stringify(datos),
   });
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_DOCENTES);
 
   return (await respuesta.json()) as Docente;
 }
@@ -98,5 +69,5 @@ export async function cambiarEstadoDocente(
     },
   );
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_DOCENTES);
 }

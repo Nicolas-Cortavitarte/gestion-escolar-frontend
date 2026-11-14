@@ -3,37 +3,9 @@ import type {
   NotaCompetencia,
   NotaCompetenciaRequest,
 } from "./notas.types";
-import { API_URL, fetchApi } from "../../shared/api/api";
+import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-async function comprobarRespuesta(respuesta: Response): Promise<void> {
-  if (respuesta.ok) return;
-
-  if (respuesta.status === 401) {
-    throw new Error("Tu sesión ya no es válida. Inicia sesión nuevamente.");
-  }
-
-  let mensaje =
-    respuesta.status === 403
-      ? "No tienes permiso para registrar notas de este curso."
-      : "No se pudo completar la operación de notas.";
-
-  try {
-    const datos: unknown = await respuesta.json();
-
-    if (
-      typeof datos === "object" &&
-      datos !== null &&
-      "message" in datos &&
-      typeof datos.message === "string"
-    ) {
-      mensaje = datos.message;
-    }
-  } catch {
-    // Conserva el mensaje general si la respuesta no contiene JSON.
-  }
-
-  throw new Error(mensaje);
-}
+const MENSAJE_ERROR_NOTAS = "No se pudo completar la operación de notas.";
 
 export async function obtenerNotasPorBimestre(
   token: string,
@@ -53,7 +25,7 @@ export async function obtenerNotasPorBimestre(
     },
   );
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_NOTAS);
 
   return (await respuesta.json()) as NotaCompetencia[];
 }
@@ -75,7 +47,7 @@ export async function guardarNotaCompetencia(
     },
   );
 
-  await comprobarRespuesta(respuesta);
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_NOTAS);
 
   return (await respuesta.json()) as NotaCompetencia;
 }
