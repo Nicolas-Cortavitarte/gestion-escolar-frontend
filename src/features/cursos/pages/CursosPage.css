@@ -61,7 +61,7 @@
 .cursos__campo select {
   width: 100%;
   min-width: 0;
-  min-height: var(--alto-control);
+  min-height: var(--altura-control);
   padding: var(--espacio-3) var(--espacio-4);
   border: 1px solid var(--color-borde-control);
   border-radius: var(--radio-control);
@@ -89,7 +89,7 @@
   align-items: center;
   justify-content: center;
   width: fit-content;
-  min-height: var(--alto-control);
+  min-height: var(--altura-control);
   padding: var(--espacio-3) var(--espacio-4);
   border: 1px solid transparent;
   border-radius: var(--radio-control);

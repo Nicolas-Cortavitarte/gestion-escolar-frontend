@@ -86,7 +86,8 @@
 
 .registro-notas label,
 .registro-conducta label,
-.registro-evaluaciones label {
+.registro-evaluaciones label,
+.registro-evaluaciones__etiqueta {
   font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -175,10 +176,60 @@
   background: var(--azul-claro);
 }
 
-.registro-evaluaciones__pestanas button[aria-pressed="true"] {
+.registro-evaluaciones__pestanas button[aria-pressed="true"],
+.registro-evaluaciones__pestanas button[aria-selected="true"] {
   border-color: var(--azul-base);
   background: var(--azul-base);
   color: var(--color-superficie);
+}
+
+.registro-evaluaciones__pildoras-nota {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1);
+  padding: 4px;
+  border: 1px solid var(--color-borde-control);
+  border-radius: var(--radio-control);
+  background: var(--color-superficie);
+  width: fit-content;
+}
+
+.registro-evaluaciones__pildora {
+  min-width: 2.5rem;
+  min-height: calc(var(--altura-control) - 10px);
+  padding: 0 var(--espacio-3);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radio-control) - 2px);
+  background: transparent;
+  color: var(--color-texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.registro-evaluaciones__pildora:hover:not(:disabled) {
+  background: var(--azul-claro);
+  color: var(--azul-base);
+}
+
+.registro-evaluaciones__pildora:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.registro-evaluaciones__pildora[aria-checked="true"] {
+  border-color: var(--azul-base);
+  background: var(--azul-base);
+  color: var(--color-superficie);
+}
+
+.registro-evaluaciones__pildora--vacia[aria-checked="true"] {
+  border-color: var(--color-borde-control);
+  background: var(--color-fondo);
+  color: var(--color-texto-secundario);
 }
 
 .registro-notas__acciones,
@@ -297,7 +348,8 @@
   background: var(--color-fondo);
 }
 
-.registro-evaluaciones__campos--notas label {
+.registro-evaluaciones__campos--notas label,
+.registro-evaluaciones__campos--notas .registro-evaluaciones__etiqueta {
   font-weight: 500;
 }
 
@@ -330,7 +382,7 @@
   }
 
   .registro-evaluaciones__campos--notas > .registro-evaluaciones__campo {
-    grid-template-columns: minmax(0, 1fr) 110px;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--espacio-6);
   }
