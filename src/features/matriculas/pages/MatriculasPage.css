@@ -101,9 +101,19 @@
   margin-top: var(--espacio-6);
 }
 
+.matriculas__celda-estado {
+  white-space: nowrap;
+}
+
+.matriculas__celda-acciones {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .matriculas__acciones-fila {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: var(--espacio-2);
 }
 
