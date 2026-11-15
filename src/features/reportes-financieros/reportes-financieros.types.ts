@@ -1,4 +1,13 @@
 import type { MovimientoFinanciero } from "../movimientos-financieros/movimientos-financieros.types";
+import type { MetodoPago } from "../../shared/constants/pagos";
+
+export interface MetodoPagoResumen {
+  metodoPago: MetodoPago;
+  ingresosMatriculas: number;
+  ingresosPensiones: number;
+  totalIngresos: number;
+  egresosPagosDocentes: number;
+}
 
 export interface ReporteFinanciero {
   fechaInicio: string;
@@ -11,5 +20,6 @@ export interface ReporteFinanciero {
   totalEgresosMovimientos: number;
   totalEgresos: number;
   balance: number;
+  resumenPorMetodoPago?: MetodoPagoResumen[];
   detalleMovimientos: MovimientoFinanciero[];
 }

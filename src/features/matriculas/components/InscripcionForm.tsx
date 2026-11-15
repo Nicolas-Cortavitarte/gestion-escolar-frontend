@@ -45,6 +45,7 @@ const matriculaVacia = {
   montoPensionMensual: "",
   fechaVencimiento: "",
   metodoPago: "EFECTIVO" as MetodoPago,
+  codigoOperacion: "",
 };
 
 type DatosEstudiante = typeof estudianteVacio;
@@ -256,6 +257,10 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
       montoPensionMensual: Number(matricula.montoPensionMensual),
       fechaVencimiento: dia,
       metodoPago: matricula.metodoPago,
+      ...(matricula.metodoPago !== "EFECTIVO" &&
+        matricula.codigoOperacion.trim() && {
+          codigoOperacion: matricula.codigoOperacion.trim(),
+        }),
     };
 
     guardandoRef.current = true;
@@ -686,9 +691,12 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                   className="campo__entrada"
                   value={matricula.metodoPago}
                   onChange={(evento) => {
+                    const nuevoMetodo = evento.target.value as MetodoPago;
                     setMatricula((actual) => ({
                       ...actual,
-                      metodoPago: evento.target.value as MetodoPago,
+                      metodoPago: nuevoMetodo,
+                      codigoOperacion:
+                        nuevoMetodo === "EFECTIVO" ? "" : actual.codigoOperacion,
                     }));
                     setErrorMatricula("");
                   }}
@@ -701,6 +709,24 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                   ))}
                 </select>
               </div>
+
+              {matricula.metodoPago !== "EFECTIVO" && (
+                <CampoEntrada
+                  id="inscripcion-codigo-operacion"
+                  etiqueta="N.º de operación / referencia (opcional)"
+                  type="text"
+                  maxLength={60}
+                  value={matricula.codigoOperacion}
+                  onChange={(evento) => {
+                    setMatricula((actual) => ({
+                      ...actual,
+                      codigoOperacion: evento.target.value,
+                    }));
+                    setErrorMatricula("");
+                  }}
+                  placeholder="Ej. 123456"
+                />
+              )}
             </div>
           </fieldset>
 

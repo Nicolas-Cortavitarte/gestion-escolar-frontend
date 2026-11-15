@@ -35,6 +35,7 @@ export interface InscripcionRequest {
   montoPensionMensual: number;
   fechaVencimiento: number;
   metodoPago?: MetodoPago;
+  codigoOperacion?: string;
 }
 
 export interface InscripcionResponse {
@@ -49,6 +50,7 @@ export interface InscripcionResponse {
     fechaVencimiento: number;
     matriculaPagada: boolean;
     metodoPago?: MetodoPago;
+    codigoOperacion?: string | null;
   };
 }
 
@@ -69,6 +71,7 @@ export interface CrearMatriculaRequest {
   fechaVencimiento: number;
   mesInicioPension?: number;
   metodoPago?: MetodoPago;
+  codigoOperacion?: string;
 }
 
 export type EstadoMatricula = "ACTIVA" | "RETIRADA" | "TRASLADADA";
@@ -88,5 +91,6 @@ export interface Matricula {
   matriculaPagada: boolean;
   fechaPagoMatricula: string | null;
   metodoPago?: MetodoPago | null;
+  codigoOperacion?: string | null;
   estado?: EstadoMatricula;
 }

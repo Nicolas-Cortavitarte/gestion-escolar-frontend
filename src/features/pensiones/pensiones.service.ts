@@ -19,10 +19,13 @@ export async function pagarPension(
   token: string,
   id: string,
   metodoPago?: MetodoPago,
+  codigoOperacion?: string,
 ): Promise<Pension> {
-  const query = metodoPago
-    ? `?metodoPago=${encodeURIComponent(metodoPago)}`
-    : "";
+  const params = new URLSearchParams();
+  if (metodoPago) params.set("metodoPago", metodoPago);
+  if (codigoOperacion?.trim()) params.set("codigoOperacion", codigoOperacion.trim());
+  const queryString = params.toString();
+  const query = queryString ? `?${queryString}` : "";
   const respuesta = await fetchApi(
     `${API_URL}/api/v1/pensiones/${encodeURIComponent(id)}/pagar${query}`,
     {
