@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { toast } from "sonner";
 import {
   obtenerMovimientos,
   eliminarMovimiento,
@@ -13,6 +14,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import {
   moneda,
   normalizar,
@@ -208,7 +210,9 @@ export function MovimientosFinancierosPage({
         </Boton>
       </form>
 
-      {cargando && <p role="status">Cargando movimientos...</p>}
+      {cargando && (
+        <TablaSkeleton columnas={6} etiqueta="Cargando movimientos..." />
+      )}
 
       {!cargando && error && (
         <div className="estado-listado">
@@ -382,11 +386,11 @@ export function MovimientosFinancierosPage({
             }
 
             setMostrarModal(false);
-            setMensaje(
-              dentroDelRango
-                ? "Movimiento registrado correctamente."
-                : "Movimiento registrado correctamente. Su fecha está fuera del periodo consultado; cambia las fechas para verlo.",
-            );
+            const mensajeCreacion = dentroDelRango
+              ? "Movimiento registrado correctamente."
+              : "Movimiento registrado correctamente. Su fecha está fuera del periodo consultado; cambia las fechas para verlo.";
+            setMensaje(mensajeCreacion);
+            toast.success(mensajeCreacion);
           }}
         />
       )}
@@ -402,6 +406,7 @@ export function MovimientosFinancierosPage({
             );
             setMovimientoEliminar(null);
             setMensaje("Movimiento eliminado correctamente.");
+            toast.success("Movimiento eliminado correctamente.");
           }}
         />
       )}

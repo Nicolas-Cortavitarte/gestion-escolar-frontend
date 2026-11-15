@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { toast } from "sonner";
 import { obtenerPagosDocentes, pagarDocente } from "../pagos-docentes.service";
 import type { PagoDocente } from "../pagos-docentes.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { GenerarPagosDocentes } from "../components/GenerarPagosDocentes";
 import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
@@ -151,11 +153,11 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
       );
 
       setPagoSeleccionado(null);
-      setMensajePago(
-        `Pago de ${meses[seleccionado.mes - 1]} registrado para ${
-          seleccionado.nombresDocente
-        }.`,
-      );
+      const mensajeExito = `Pago de ${meses[seleccionado.mes - 1]} registrado para ${
+        seleccionado.nombresDocente
+      }.`;
+      setMensajePago(mensajeExito);
+      toast.success(mensajeExito);
     } catch (fallo: unknown) {
       setErrorPago(
         fallo instanceof Error
@@ -192,9 +194,9 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
             setErrorPago("");
             setCargando(true);
 
-            setMensajePago(
-              `Generación de pagos de ${anioGenerado} completada. Los pagos existentes se conservaron.`,
-            );
+            const mensajeGeneracion = `Generación de pagos de ${anioGenerado} completada. Los pagos existentes se conservaron.`;
+            setMensajePago(mensajeGeneracion);
+            toast.success(mensajeGeneracion);
 
             setIntento((actual) => actual + 1);
           }}
@@ -291,9 +293,7 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
       )}
 
       {cargando && (
-        <p className="estado-listado" role="status">
-          Cargando pagos...
-        </p>
+        <TablaSkeleton columnas={6} etiqueta="Cargando pagos..." />
       )}
 
       {!cargando && error && (

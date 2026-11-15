@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
+import { toast } from "sonner";
 import { obtenerMatriculas, pagarMatricula } from "../matriculas.service";
 import type { Matricula } from "../matriculas.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Paginacion } from "../../../shared/components/Paginacion";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./MatriculasPage.css";
@@ -127,9 +129,9 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
       );
 
       setMatriculaPendiente(null);
-      setMensajePago(
-        `Pago de matrícula registrado para ${seleccionada.nombreEstudiante}.`,
-      );
+      const mensajeExito = `Pago de matrícula registrado para ${seleccionada.nombreEstudiante}.`;
+      setMensajePago(mensajeExito);
+      toast.success(mensajeExito);
     } catch (fallo: unknown) {
       setErrorPago(
         fallo instanceof Error
@@ -215,9 +217,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
       )}
 
       {cargando && (
-        <p className="estado-listado" role="status">
-          Cargando matrículas...
-        </p>
+        <TablaSkeleton columnas={6} etiqueta="Cargando matrículas..." />
       )}
 
       {!cargando && error && (

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { toast } from "sonner";
 import { obtenerDocentes, cambiarEstadoDocente } from "../docentes.service";
 import type { Docente } from "../docentes.types";
 import { DocenteModal } from "../components/DocenteModal";
@@ -6,6 +7,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./DocentesPage.css";
@@ -118,11 +120,11 @@ export function DocentesPage({ token }: DocentesPageProps) {
       );
 
       setDocenteEstado(null);
-      setMensaje(
-        `Docente ${seleccionado.nombres} ${seleccionado.apellidos} ${
-          nuevoEstado ? "reactivado" : "desactivado"
-        } correctamente.`,
-      );
+      const mensajeEstado = `Docente ${seleccionado.nombres} ${seleccionado.apellidos} ${
+        nuevoEstado ? "reactivado" : "desactivado"
+      } correctamente.`;
+      setMensaje(mensajeEstado);
+      toast.success(mensajeEstado);
     } catch (fallo: unknown) {
       setErrorEstado(
         fallo instanceof Error
@@ -194,9 +196,7 @@ export function DocentesPage({ token }: DocentesPageProps) {
       )}
 
       {cargando && (
-        <p className="estado-listado" role="status">
-          Cargando docentes...
-        </p>
+        <TablaSkeleton columnas={6} etiqueta="Cargando docentes..." />
       )}
 
       {!cargando && error && (
@@ -340,11 +340,11 @@ export function DocentesPage({ token }: DocentesPageProps) {
             setBusqueda("");
             setEstado("");
             setPagina(1);
-            setMensaje(
-              `Docente ${guardado.nombres} ${guardado.apellidos} ${
-                esEdicion ? "actualizado" : "registrado"
-              } correctamente.`,
-            );
+            const mensajeDocente = `Docente ${guardado.nombres} ${guardado.apellidos} ${
+              esEdicion ? "actualizado" : "registrado"
+            } correctamente.`;
+            setMensaje(mensajeDocente);
+            toast.success(mensajeDocente);
           }}
         />
       )}

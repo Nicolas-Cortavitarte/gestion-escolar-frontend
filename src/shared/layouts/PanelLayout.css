@@ -116,6 +116,10 @@
   color: var(--color-superficie);
   text-decoration: none;
   line-height: 1.35;
+  transition:
+    background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .panel-layout__nav a:hover {
