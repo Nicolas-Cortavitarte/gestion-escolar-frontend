@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { obtenerCursos } from "../cursos.service";
 import type { Curso } from "../cursos.types";
 import { CursoModal } from "../components/CursoModal";
@@ -7,6 +8,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./CursosPage.css";
@@ -231,9 +233,7 @@ export function CursosPage({ token }: CursosPageProps) {
       </div>
 
       {cargando && (
-        <p className="estado-listado" role="status">
-          Cargando cursos...
-        </p>
+        <TablaSkeleton columnas={6} etiqueta="Cargando cursos..." />
       )}
 
       {!cargando && error && (
@@ -373,11 +373,11 @@ export function CursosPage({ token }: CursosPageProps) {
             setPagina(1);
             setMostrarModal(false);
             setCursoEditando(null);
-            setMensaje(
-              `Curso ${guardado.nombre} ${
-                esEdicion ? "actualizado" : "registrado"
-              } correctamente.`,
-            );
+            const mensajeCurso = `Curso ${guardado.nombre} ${
+              esEdicion ? "actualizado" : "registrado"
+            } correctamente.`;
+            setMensaje(mensajeCurso);
+            toast.success(mensajeCurso);
           }}
         />
       )}

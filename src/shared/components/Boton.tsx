@@ -25,7 +25,31 @@ export function Boton({
       disabled={disabled || cargando}
       aria-busy={cargando}
     >
-      {cargando ? textoCargando : children}
+      {cargando ? (
+        <>
+          <svg
+            className="boton__spinner"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray="42 18"
+            />
+          </svg>
+          <span>{textoCargando}</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

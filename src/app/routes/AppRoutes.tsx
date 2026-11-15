@@ -1,22 +1,84 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router";
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import type { LoginResponse } from "../../features/auth/auth.types";
 import { AdminLayout } from "../../layouts/admin/AdminLayout";
-import { AdminDashboardPage } from "../../features/dashboard/pages/AdminDashboardPage";
-import { EstudiantesPage } from "../../features/estudiantes/pages/EstudiantesPage";
-import { NuevaMatriculaPage } from "../../features/matriculas/pages/NuevaMatriculaPage";
-import { MatriculasPage } from "../../features/matriculas/pages/MatriculasPage";
-import { PensionesPage } from "../../features/pensiones/pages/PensionesPage";
-import { DocentesPage } from "../../features/docentes/pages/DocentesPage";
-import { PagosDocentesPage } from "../../features/pagos-docentes/pages/PagosDocentesPage";
-import { CursosPage } from "../../features/cursos/pages/CursosPage";
-import { MovimientosFinancierosPage } from "../../features/movimientos-financieros/pages/MovimientosFinancierosPage";
-import { ReporteFinancieroPage } from "../../features/reportes-financieros/pages/ReporteFinancieroPage";
-import { BoletasPage } from "../../features/boletas/pages/BoletasPage";
 import { DocenteLayout } from "../../layouts/docente/DocenteLayout";
-import { DocenteDashboardPage } from "../../features/dashboard/pages/DocenteDashboardPage";
-import { MisCursosPage } from "../../features/cursos/pages/MisCursosPage";
-import { CursoDocentePage } from "../../features/cursos/pages/CursoDocentePage";
+
+const AdminDashboardPage = lazy(() =>
+  import("../../features/dashboard/pages/AdminDashboardPage").then((m) => ({
+    default: m.AdminDashboardPage,
+  })),
+);
+const EstudiantesPage = lazy(() =>
+  import("../../features/estudiantes/pages/EstudiantesPage").then((m) => ({
+    default: m.EstudiantesPage,
+  })),
+);
+const NuevaMatriculaPage = lazy(() =>
+  import("../../features/matriculas/pages/NuevaMatriculaPage").then((m) => ({
+    default: m.NuevaMatriculaPage,
+  })),
+);
+const MatriculasPage = lazy(() =>
+  import("../../features/matriculas/pages/MatriculasPage").then((m) => ({
+    default: m.MatriculasPage,
+  })),
+);
+const PensionesPage = lazy(() =>
+  import("../../features/pensiones/pages/PensionesPage").then((m) => ({
+    default: m.PensionesPage,
+  })),
+);
+const DocentesPage = lazy(() =>
+  import("../../features/docentes/pages/DocentesPage").then((m) => ({
+    default: m.DocentesPage,
+  })),
+);
+const PagosDocentesPage = lazy(() =>
+  import("../../features/pagos-docentes/pages/PagosDocentesPage").then((m) => ({
+    default: m.PagosDocentesPage,
+  })),
+);
+const CursosPage = lazy(() =>
+  import("../../features/cursos/pages/CursosPage").then((m) => ({
+    default: m.CursosPage,
+  })),
+);
+const MovimientosFinancierosPage = lazy(() =>
+  import(
+    "../../features/movimientos-financieros/pages/MovimientosFinancierosPage"
+  ).then((m) => ({
+    default: m.MovimientosFinancierosPage,
+  })),
+);
+const ReporteFinancieroPage = lazy(() =>
+  import("../../features/reportes-financieros/pages/ReporteFinancieroPage").then(
+    (m) => ({
+      default: m.ReporteFinancieroPage,
+    }),
+  ),
+);
+const BoletasPage = lazy(() =>
+  import("../../features/boletas/pages/BoletasPage").then((m) => ({
+    default: m.BoletasPage,
+  })),
+);
+const DocenteDashboardPage = lazy(() =>
+  import("../../features/dashboard/pages/DocenteDashboardPage").then((m) => ({
+    default: m.DocenteDashboardPage,
+  })),
+);
+const MisCursosPage = lazy(() =>
+  import("../../features/cursos/pages/MisCursosPage").then((m) => ({
+    default: m.MisCursosPage,
+  })),
+);
+const CursoDocentePage = lazy(() =>
+  import("../../features/cursos/pages/CursoDocentePage").then((m) => ({
+    default: m.CursoDocentePage,
+  })),
+);
 
 interface AppRoutesProps {
   sesion: LoginResponse | null;
@@ -51,7 +113,14 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
   const rutaInicial = obtenerRutaInicial(sesion);
 
   return (
-    <Routes>
+    <Suspense
+      fallback={
+        <p className="estado-listado" role="status">
+          Cargando vista...
+        </p>
+      }
+    >
+      <Routes>
       <Route
         path="/login"
         element={
@@ -173,5 +242,6 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
 
       <Route path="*" element={<Navigate to={rutaInicial} replace />} />
     </Routes>
+    </Suspense>
   );
 }

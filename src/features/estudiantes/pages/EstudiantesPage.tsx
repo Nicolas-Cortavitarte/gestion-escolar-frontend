@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { toast } from "sonner";
 import { obtenerEstudiantes } from "../estudiantes.service";
 import type { Estudiante } from "../estudiantes.types";
 import { EditarEstudianteModal } from "../components/EditarEstudianteModal";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Boton } from "../../../shared/components/Boton";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { normalizar, mostrarFecha } from "../../../shared/utils/formato";
 import "./EstudiantesPage.css";
 import "../../../styles/listados.css";
@@ -120,9 +122,7 @@ export function EstudiantesPage({ token }: EstudiantesPageProps) {
       )}
 
       {cargando && (
-        <p className="estado-listado" role="status">
-          Cargando estudiantes...
-        </p>
+        <TablaSkeleton columnas={5} etiqueta="Cargando estudiantes..." />
       )}
 
       {!cargando && error && (
@@ -230,6 +230,9 @@ export function EstudiantesPage({ token }: EstudiantesPageProps) {
             );
             setEstudianteEnEdicion(null);
             setMensaje(
+              "Los datos del estudiante se actualizaron correctamente.",
+            );
+            toast.success(
               "Los datos del estudiante se actualizaron correctamente.",
             );
           }}

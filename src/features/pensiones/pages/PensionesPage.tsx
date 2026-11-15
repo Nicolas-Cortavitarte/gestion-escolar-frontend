@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { toast } from "sonner";
 import { obtenerPensiones, pagarPension } from "../pensiones.service";
 import { obtenerMatriculas } from "../../matriculas/matriculas.service";
 import type { Pension } from "../pensiones.types";
@@ -7,6 +8,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { Paginacion } from "../../../shared/components/Paginacion";
+import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { moneda, normalizar } from "../../../shared/utils/formato";
 import "../../../styles/listados.css";
 import "./PensionesPage.css";
@@ -170,11 +172,11 @@ export function PensionesPage({ token }: PensionesPageProps) {
       )?.nombreEstudiante;
 
       setPensionSeleccionada(null);
-      setMensajePago(
-        `Pago de ${meses[seleccionada.mes - 1]} registrado para ${
-          nombre ?? "el estudiante"
-        }.`,
-      );
+      const mensajeExito = `Pago de ${meses[seleccionada.mes - 1]} registrado para ${
+        nombre ?? "el estudiante"
+      }.`;
+      setMensajePago(mensajeExito);
+      toast.success(mensajeExito);
     } catch (fallo: unknown) {
       setErrorPago(
         fallo instanceof Error
@@ -284,9 +286,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
       )}
 
       {cargando && (
-        <p className="estado-listado" role="status">
-          Cargando pensiones...
-        </p>
+        <TablaSkeleton columnas={6} etiqueta="Cargando pensiones..." />
       )}
 
       {!cargando && error && (
