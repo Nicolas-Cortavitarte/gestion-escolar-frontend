@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import {
-  obtenerCantidadEstudiantes,
-  obtenerCantidadDocentes,
-  obtenerResumenFinancieroMes,
-} from "../dashboard.service";
-import type { ResumenFinancieroMes } from "../dashboard.types";
+import { obtenerResumenDashboard } from "../dashboard.service";
+import type {
+  DashboardResumen,
+  ResumenFinancieroMes,
+} from "../dashboard.types";
 import { ComparacionFinanciera } from "../components/ComparacionFinanciera";
 import { TarjetaResumen } from "../../../shared/components/TarjetaResumen";
 import { moneda } from "../../../shared/utils/formato";
@@ -22,70 +21,42 @@ function mensajeError(fallo: unknown): string {
 }
 
 export function AdminDashboardPage({ token }: AdminDashboardPageProps) {
-  const [cantidadEstudiantes, setCantidadEstudiantes] = useState<number | null>(
-    null,
-  );
-  const [cantidadDocentes, setCantidadDocentes] = useState<number | null>(null);
-  const [resumenFinanciero, setResumenFinanciero] =
-    useState<ResumenFinancieroMes | null>(null);
-
-  const [errorEstudiantes, setErrorEstudiantes] = useState("");
-  const [errorDocentes, setErrorDocentes] = useState("");
-  const [errorFinanzas, setErrorFinanzas] = useState("");
-
-  const [intentoEstudiantes, setIntentoEstudiantes] = useState(0);
-  const [intentoDocentes, setIntentoDocentes] = useState(0);
-  const [intentoFinanzas, setIntentoFinanzas] = useState(0);
-
+  const [resumen, setResumen] = useState<DashboardResumen | null>(null);
+  const [errorResumen, setErrorResumen] = useState("");
+  const [intento, setIntento] = useState(0);
   const [fechaResumen, setFechaResumen] = useState(() => new Date());
 
   useEffect(() => {
     let activo = true;
 
-    obtenerCantidadEstudiantes(token)
-      .then((cantidad) => {
-        if (activo) setCantidadEstudiantes(cantidad);
+    obtenerResumenDashboard(token)
+      .then((datos) => {
+        if (!activo) return;
+        setResumen(datos);
+        setErrorResumen("");
       })
       .catch((fallo: unknown) => {
-        if (activo) setErrorEstudiantes(mensajeError(fallo));
+        if (activo) setErrorResumen(mensajeError(fallo));
       });
 
     return () => {
       activo = false;
     };
-  }, [token, intentoEstudiantes]);
+  }, [token, intento]);
 
-  useEffect(() => {
-    let activo = true;
+  const reintentarCarga = () => {
+    setErrorResumen("");
+    setResumen(null);
+    setFechaResumen(new Date());
+    setIntento((actual) => actual + 1);
+  };
 
-    obtenerCantidadDocentes(token)
-      .then((cantidad) => {
-        if (activo) setCantidadDocentes(cantidad);
-      })
-      .catch((fallo: unknown) => {
-        if (activo) setErrorDocentes(mensajeError(fallo));
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, [token, intentoDocentes]);
-
-  useEffect(() => {
-    let activo = true;
-
-    obtenerResumenFinancieroMes(token)
-      .then((resumen) => {
-        if (activo) setResumenFinanciero(resumen);
-      })
-      .catch((fallo: unknown) => {
-        if (activo) setErrorFinanzas(mensajeError(fallo));
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, [token, intentoFinanzas]);
+  const resumenFinanciero: ResumenFinancieroMes | null = resumen
+    ? {
+        ingresos: resumen.ingresosMes,
+        egresos: resumen.egresosMes,
+      }
+    : null;
 
   const mesResumen = new Intl.DateTimeFormat("es-PE", {
     month: "long",
@@ -116,24 +87,16 @@ export function AdminDashboardPage({ token }: AdminDashboardPageProps) {
         <div className="admin-dashboard__cards admin-dashboard__cards--gestion">
           <TarjetaResumen
             titulo="Estudiantes registrados"
-            valor={cantidadEstudiantes}
-            error={errorEstudiantes}
-            onReintentar={() => {
-              setErrorEstudiantes("");
-              setCantidadEstudiantes(null);
-              setIntentoEstudiantes((actual) => actual + 1);
-            }}
+            valor={resumen?.estudiantesRegistrados ?? null}
+            error={errorResumen}
+            onReintentar={reintentarCarga}
           />
 
           <TarjetaResumen
-            titulo="Docentes registrados"
-            valor={cantidadDocentes}
-            error={errorDocentes}
-            onReintentar={() => {
-              setErrorDocentes("");
-              setCantidadDocentes(null);
-              setIntentoDocentes((actual) => actual + 1);
-            }}
+            titulo="Docentes activos"
+            valor={resumen?.docentesActivos ?? null}
+            error={errorResumen}
+            onReintentar={reintentarCarga}
           />
         </div>
       </section>
@@ -145,17 +108,12 @@ export function AdminDashboardPage({ token }: AdminDashboardPageProps) {
         <h2 id="dashboard-finanzas">Resumen financiero del mes</h2>
         <p className="admin-dashboard__periodo">{mesResumen}</p>
 
-        {errorFinanzas ? (
+        {errorResumen ? (
           <TarjetaResumen
             titulo="Información financiera"
             valor={null}
-            error={errorFinanzas}
-            onReintentar={() => {
-              setErrorFinanzas("");
-              setResumenFinanciero(null);
-              setFechaResumen(new Date());
-              setIntentoFinanzas((actual) => actual + 1);
-            }}
+            error={errorResumen}
+            onReintentar={reintentarCarga}
           />
         ) : (
           <div className="admin-dashboard__cards admin-dashboard__cards--finanzas">
@@ -190,7 +148,7 @@ export function AdminDashboardPage({ token }: AdminDashboardPageProps) {
           </div>
         )}
 
-        {resumenFinanciero && !errorFinanzas && (
+        {resumenFinanciero && !errorResumen && (
           <ComparacionFinanciera resumen={resumenFinanciero} />
         )}
 

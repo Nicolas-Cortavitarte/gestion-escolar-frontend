@@ -101,6 +101,16 @@
   margin-top: var(--espacio-6);
 }
 
+.pensiones__acciones-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.pensiones__modal-campo {
+  margin-top: var(--espacio-4);
+}
+
 .pensiones__modal-acciones .boton {
   flex: 1;
 }

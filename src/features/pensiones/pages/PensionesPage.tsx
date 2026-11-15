@@ -1,6 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { toast } from "sonner";
-import { obtenerPensiones, pagarPension } from "../pensiones.service";
+import {
+  obtenerPensiones,
+  pagarPension,
+  actualizarMoraPension,
+} from "../pensiones.service";
 import { obtenerMatriculas } from "../../matriculas/matriculas.service";
 import type { Pension } from "../pensiones.types";
 import type { Matricula } from "../../matriculas/matriculas.types";
@@ -59,7 +64,12 @@ export function PensionesPage({ token }: PensionesPageProps) {
   const [mensajePago, setMensajePago] = useState("");
   const [errorPago, setErrorPago] = useState("");
 
+  const [pensionMora, setPensionMora] = useState<Pension | null>(null);
+  const [guardandoMora, setGuardandoMora] = useState(false);
+  const [errorMora, setErrorMora] = useState("");
+
   const pagandoRef = useRef(false);
+  const guardandoMoraRef = useRef(false);
 
   useEffect(() => {
     let activo = true;
@@ -186,6 +196,62 @@ export function PensionesPage({ token }: PensionesPageProps) {
     } finally {
       pagandoRef.current = false;
       setPagando(false);
+    }
+  }
+
+  function cerrarMora() {
+    if (guardandoMoraRef.current) return;
+    setPensionMora(null);
+    setErrorMora("");
+  }
+
+  async function guardarMora(nuevaMora: number) {
+    const seleccionada = pensionMora;
+
+    if (
+      !seleccionada ||
+      seleccionada.estado === "PAGADO" ||
+      guardandoMoraRef.current
+    ) {
+      return;
+    }
+
+    guardandoMoraRef.current = true;
+    setGuardandoMora(true);
+    setErrorMora("");
+
+    try {
+      const actualizada = await actualizarMoraPension(
+        token,
+        seleccionada.id,
+        nuevaMora,
+      );
+
+      setPensiones((actuales) =>
+        actuales.map((item) =>
+          item.id === actualizada.id ? actualizada : item,
+        ),
+      );
+
+      const nombre = matriculasPorId.get(
+        seleccionada.matriculaId,
+      )?.nombreEstudiante;
+
+      setPensionMora(null);
+      const mensajeExito = `Mora de ${meses[seleccionada.mes - 1]} actualizada para ${
+        nombre ?? "el estudiante"
+      }.`;
+      setMensajePago(mensajeExito);
+      toast.success(mensajeExito);
+    } catch (fallo: unknown) {
+      setErrorMora(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo actualizar la mora. Inténtalo nuevamente.",
+      );
+    } finally {
+      guardandoMoraRef.current = false;
+      setGuardandoMora(false);
     }
   }
 
@@ -392,23 +458,40 @@ export function PensionesPage({ token }: PensionesPageProps) {
                       <td data-label="Acciones">
                         {pension.estado === "PAGADO" ? (
                           <span>Pago registrado</span>
-                        ) : pension.montoTotal == null ? (
-                          <span>
-                            Total no disponible para registrar el pago
-                          </span>
                         ) : (
-                          <Boton
-                            onClick={() => {
-                              setMensajePago("");
-                              setErrorPago("");
-                              setPensionSeleccionada(pension);
-                            }}
-                            aria-label={`Registrar pago de ${
-                              meses[pension.mes - 1]
-                            } de ${nombre}`}
-                          >
-                            Registrar pago
-                          </Boton>
+                          <div className="pensiones__acciones-fila">
+                            {pension.montoTotal == null ? (
+                              <span>
+                                Total no disponible para registrar el pago
+                              </span>
+                            ) : (
+                              <Boton
+                                onClick={() => {
+                                  setMensajePago("");
+                                  setErrorPago("");
+                                  setPensionSeleccionada(pension);
+                                }}
+                                aria-label={`Registrar pago de ${
+                                  meses[pension.mes - 1]
+                                } de ${nombre}`}
+                              >
+                                Registrar pago
+                              </Boton>
+                            )}
+
+                            <Boton
+                              onClick={() => {
+                                setMensajePago("");
+                                setErrorMora("");
+                                setPensionMora(pension);
+                              }}
+                              aria-label={`Ajustar mora de ${
+                                meses[pension.mes - 1]
+                              } de ${nombre}`}
+                            >
+                              Ajustar mora
+                            </Boton>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -438,6 +521,20 @@ export function PensionesPage({ token }: PensionesPageProps) {
           error={errorPago}
           onCancelar={cerrarPago}
           onConfirmar={() => void registrarPago()}
+        />
+      )}
+
+      {pensionMora && (
+        <AjustarMoraPensionModal
+          pension={pensionMora}
+          nombreEstudiante={
+            matriculasPorId.get(pensionMora.matriculaId)?.nombreEstudiante ??
+            "Estudiante"
+          }
+          guardando={guardandoMora}
+          error={errorMora}
+          onCancelar={cerrarMora}
+          onGuardar={(nuevaMora) => void guardarMora(nuevaMora)}
         />
       )}
     </section>
@@ -549,6 +646,154 @@ function ConfirmarPagoPensionModal({
           {error ? "Reintentar pago" : "Confirmar pago"}
         </Boton>
       </div>
+    </dialog>
+  );
+}
+
+interface AjustarMoraPensionModalProps {
+  pension: Pension;
+  nombreEstudiante: string;
+  guardando: boolean;
+  error: string;
+  onCancelar: () => void;
+  onGuardar: (nuevaMora: number) => void;
+}
+
+function AjustarMoraPensionModal({
+  pension,
+  nombreEstudiante,
+  guardando,
+  error,
+  onCancelar,
+  onGuardar,
+}: AjustarMoraPensionModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const tituloId = useId();
+  const descripcionId = useId();
+  const [moraTexto, setMoraTexto] = useState(
+    String(pension.moraAcumulada ?? 0),
+  );
+  const [errorValidacion, setErrorValidacion] = useState("");
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const elementoAnterior = document.activeElement;
+
+    if (dialog && !dialog.open) dialog.showModal();
+
+    return () => {
+      dialog?.close();
+
+      if (
+        elementoAnterior instanceof HTMLElement &&
+        elementoAnterior.isConnected
+      ) {
+        elementoAnterior.focus();
+      } else {
+        document.getElementById("pensiones-busqueda")?.focus();
+      }
+    };
+  }, []);
+
+  const valorNumerico = Number(moraTexto);
+  const esNumeroValido =
+    moraTexto.trim() !== "" &&
+    Number.isFinite(valorNumerico) &&
+    valorNumerico >= 0 &&
+    /^\d+(\.\d{1,2})?$/.test(moraTexto.trim());
+
+  const totalCalculado = esNumeroValido
+    ? pension.montoBase + valorNumerico
+    : pension.montoTotal;
+
+  function manejarEnvio(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+
+    if (!esNumeroValido) {
+      setErrorValidacion(
+        "Ingresa un monto válido mayor o igual a 0.00 con hasta dos decimales.",
+      );
+      return;
+    }
+
+    setErrorValidacion("");
+    onGuardar(Number(valorNumerico.toFixed(2)));
+  }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="pensiones__modal"
+      aria-labelledby={tituloId}
+      aria-describedby={descripcionId}
+      aria-busy={guardando}
+      onCancel={(evento) => {
+        evento.preventDefault();
+        onCancelar();
+      }}
+    >
+      <h2 id={tituloId}>Ajustar mora de pensión</h2>
+
+      <p id={descripcionId}>
+        {nombreEstudiante} — {meses[pension.mes - 1]} de{" "}
+        {pension.fechaVencimiento.slice(0, 4)}.
+      </p>
+
+      <form onSubmit={manejarEnvio} noValidate>
+        <div className="pensiones__modal-campo">
+          <CampoEntrada
+            id="pension-mora-input"
+            etiqueta="Mora acumulada (S/)"
+            type="number"
+            min="0"
+            step="0.01"
+            value={moraTexto}
+            onChange={(evento) => {
+              setMoraTexto(evento.target.value);
+              if (errorValidacion) setErrorValidacion("");
+            }}
+            error={errorValidacion}
+            disabled={guardando}
+            autoFocus
+          />
+        </div>
+
+        <dl className="pensiones__modal-detalle">
+          <div>
+            <dt>Monto base</dt>
+            <dd>{moneda.format(pension.montoBase)}</dd>
+          </div>
+          <div>
+            <dt>Nuevo total a cobrar</dt>
+            <dd>
+              {totalCalculado == null
+                ? "No disponible"
+                : moneda.format(totalCalculado)}
+            </dd>
+          </div>
+        </dl>
+
+        {error && (
+          <p className="pensiones__error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <div className="pensiones__modal-acciones">
+          <Boton onClick={onCancelar} disabled={guardando}>
+            Cancelar
+          </Boton>
+
+          <Boton
+            type="submit"
+            variante="principal"
+            cargando={guardando}
+            textoCargando="Guardando..."
+          >
+            Guardar mora
+          </Boton>
+        </div>
+      </form>
     </dialog>
   );
 }

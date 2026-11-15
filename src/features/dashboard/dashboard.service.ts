@@ -1,10 +1,10 @@
-import type { ResumenFinancieroMes } from "./dashboard.types";
+import type { DashboardResumen } from "./dashboard.types";
 import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
 
-export async function obtenerCantidadEstudiantes(
+export async function obtenerResumenDashboard(
   token: string,
-): Promise<number> {
-  const respuesta = await fetchApi(`${API_URL}/api/v1/estudiantes`, {
+): Promise<DashboardResumen> {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/dashboard/resumen`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -12,75 +12,8 @@ export async function obtenerCantidadEstudiantes(
 
   await asegurarRespuestaOk(
     respuesta,
-    "No se pudo cargar la cantidad de estudiantes",
+    "No se pudo cargar el resumen del panel.",
   );
 
-  const estudiantes: unknown = await respuesta.json();
-
-  if (!Array.isArray(estudiantes)) {
-    throw new Error(
-      "La respuesta de estudiantes no tiene el formato esperado.",
-    );
-  }
-
-  return estudiantes.length;
-}
-
-export async function obtenerCantidadDocentes(token: string): Promise<number> {
-  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  await asegurarRespuestaOk(
-    respuesta,
-    "No se pudo cargar la cantidad de docentes",
-  );
-
-  const docentes: unknown = await respuesta.json();
-
-  if (!Array.isArray(docentes)) {
-    throw new Error("La respuesta de docentes no tiene el formato esperado.");
-  }
-
-  return docentes.length;
-}
-
-export async function obtenerResumenFinancieroMes(
-  token: string,
-): Promise<ResumenFinancieroMes> {
-  const hoy = new Date();
-  const anio = hoy.getFullYear();
-  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-  const ultimoDia = new Date(anio, hoy.getMonth() + 1, 0).getDate();
-
-  const desde = `${anio}-${mes}-01`;
-  const hasta = `${anio}-${mes}-${String(ultimoDia).padStart(2, "0")}`;
-
-  const parametros = new URLSearchParams({ desde, hasta });
-
-  const respuesta = await fetchApi(
-    `${API_URL}/api/v1/reportes-financieros?${parametros}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-
-  await asegurarRespuestaOk(
-    respuesta,
-    "No se pudo cargar el resumen financiero del mes.",
-  );
-
-  const reporte = (await respuesta.json()) as {
-    totalIngresos: number;
-    totalEgresos: number;
-  };
-
-  return {
-    ingresos: reporte.totalIngresos,
-    egresos: reporte.totalEgresos,
-  };
+  return (await respuesta.json()) as DashboardResumen;
 }
