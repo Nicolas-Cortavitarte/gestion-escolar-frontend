@@ -14,6 +14,7 @@ import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Boton } from "../../../shared/components/Boton";
 import { useValidacion } from "../../../shared/hooks/useValidacion";
 import { GRADOS_POR_NIVEL } from "../../../shared/constants/academico";
+import { METODOS_PAGO, type MetodoPago } from "../../../shared/constants/pagos";
 import "./InscripcionForm.css";
 
 interface InscripcionFormProps {
@@ -43,6 +44,7 @@ const matriculaVacia = {
   montoMatricula: "",
   montoPensionMensual: "",
   fechaVencimiento: "",
+  metodoPago: "EFECTIVO" as MetodoPago,
 };
 
 type DatosEstudiante = typeof estudianteVacio;
@@ -253,6 +255,7 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
       montoMatricula: Number(matricula.montoMatricula),
       montoPensionMensual: Number(matricula.montoPensionMensual),
       fechaVencimiento: dia,
+      metodoPago: matricula.metodoPago,
     };
 
     guardandoRef.current = true;
@@ -673,8 +676,38 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                   </p>
                 )}
               </div>
+
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="inscripcion-metodo-pago">
+                  Método de pago de matrícula *
+                </label>
+                <select
+                  id="inscripcion-metodo-pago"
+                  className="campo__entrada"
+                  value={matricula.metodoPago}
+                  onChange={(evento) => {
+                    setMatricula((actual) => ({
+                      ...actual,
+                      metodoPago: evento.target.value as MetodoPago,
+                    }));
+                    setErrorMatricula("");
+                  }}
+                  required
+                >
+                  {METODOS_PAGO.map((opcion) => (
+                    <option key={opcion.valor} value={opcion.valor}>
+                      {opcion.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </fieldset>
+
+          <p className="inscripcion__ayuda">
+            Al registrar la matrícula se confirma y registra automáticamente el
+            pago de matrícula con el método seleccionado.
+          </p>
 
           {errorMatricula && (
             <p className="inscripcion__error" role="alert">
@@ -692,9 +725,9 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
                 type="submit"
                 variante="principal"
                 cargando={guardando}
-                textoCargando="Registrando..."
+                textoCargando="Registrando pago..."
               >
-                Registrar matrícula
+                Registrar y confirmar pago
               </Boton>
             </div>
           )}

@@ -7,6 +7,7 @@ import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { useValidacion } from "../../../shared/hooks/useValidacion";
 import { GRADOS_POR_NIVEL } from "../../../shared/constants/academico";
+import { METODOS_PAGO, type MetodoPago } from "../../../shared/constants/pagos";
 import "./InscripcionForm.css";
 
 interface MatriculaExistenteFormProps {
@@ -45,6 +46,7 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   const [montoMatricula, setMontoMatricula] = useState("");
   const [montoPensionMensual, setMontoPensionMensual] = useState("");
   const [fechaVencimiento, setFechaVencimiento] = useState("");
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
 
   const buscandoRef = useRef(false);
   const guardandoRef = useRef(false);
@@ -140,6 +142,7 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
         montoMatricula: monto,
         montoPensionMensual: pension,
         fechaVencimiento: dia,
+        metodoPago,
         ...(mesInicioPension && {
           mesInicioPension: Number(mesInicioPension),
         }),
@@ -171,6 +174,7 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
     setMontoMatricula("");
     setMontoPensionMensual("");
     setFechaVencimiento("");
+    setMetodoPago("EFECTIVO");
     setErrorBusqueda("");
     setErrorMatricula("");
     setMensaje("");
@@ -465,8 +469,35 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                   </p>
                 )}
               </div>
+
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="existente-metodo-pago">
+                  Método de pago de matrícula *
+                </label>
+                <select
+                  id="existente-metodo-pago"
+                  className="campo__entrada"
+                  value={metodoPago}
+                  onChange={(evento) => {
+                    setMetodoPago(evento.target.value as MetodoPago);
+                    setErrorMatricula("");
+                  }}
+                  required
+                >
+                  {METODOS_PAGO.map((opcion) => (
+                    <option key={opcion.valor} value={opcion.valor}>
+                      {opcion.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </fieldset>
+
+          <p className="inscripcion__ayuda">
+            Al registrar la matrícula se confirma y registra automáticamente el
+            pago de matrícula con el método seleccionado.
+          </p>
 
           {errorMatricula && (
             <p className="inscripcion__error" role="alert">
@@ -492,9 +523,9 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                 type="submit"
                 variante="principal"
                 cargando={guardando}
-                textoCargando="Registrando..."
+                textoCargando="Registrando pago..."
               >
-                Registrar matrícula
+                Registrar y confirmar pago
               </Boton>
             </div>
           )}

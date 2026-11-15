@@ -5,7 +5,8 @@ import {
   pagarPension,
 } from "../pensiones.service";
 import { obtenerMatriculas } from "../../matriculas/matriculas.service";
-import type { Pension } from "../pensiones.types";
+import type { MetodoPago, Pension } from "../pensiones.types";
+import { METODOS_PAGO } from "../../../shared/constants/pagos";
 import type { Matricula } from "../../matriculas/matriculas.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
@@ -145,7 +146,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
     setErrorPago("");
   }
 
-  async function registrarPago() {
+  async function registrarPago(metodoPago: MetodoPago) {
     const seleccionada = pensionSeleccionada;
 
     if (
@@ -162,7 +163,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
     setErrorPago("");
 
     try {
-      const actualizada = await pagarPension(token, seleccionada.id);
+      const actualizada = await pagarPension(token, seleccionada.id, metodoPago);
 
       setPensiones((actuales) =>
         actuales.map((item) =>
@@ -444,7 +445,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
           pagando={pagando}
           error={errorPago}
           onCancelar={cerrarPago}
-          onConfirmar={() => void registrarPago()}
+          onConfirmar={(metodoPago) => void registrarPago(metodoPago)}
         />
       )}
     </section>
@@ -457,7 +458,7 @@ interface ConfirmarPagoPensionModalProps {
   pagando: boolean;
   error: string;
   onCancelar: () => void;
-  onConfirmar: () => void;
+  onConfirmar: (metodoPago: MetodoPago) => void;
 }
 
 function ConfirmarPagoPensionModal({
@@ -471,6 +472,8 @@ function ConfirmarPagoPensionModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const tituloId = useId();
   const descripcionId = useId();
+  const metodoId = useId();
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -535,6 +538,25 @@ function ConfirmarPagoPensionModal({
         ))}
       </dl>
 
+      <div className="campo" style={{ marginBottom: "1rem" }}>
+        <label className="campo__etiqueta" htmlFor={metodoId}>
+          Método de pago
+        </label>
+        <select
+          id={metodoId}
+          className="campo__entrada"
+          value={metodoPago}
+          onChange={(evento) => setMetodoPago(evento.target.value as MetodoPago)}
+          disabled={pagando}
+        >
+          {METODOS_PAGO.map((opcion) => (
+            <option key={opcion.valor} value={opcion.valor}>
+              {opcion.etiqueta}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {error && (
         <p className="pensiones__error" role="alert">
           {error}
@@ -548,7 +570,7 @@ function ConfirmarPagoPensionModal({
 
         <Boton
           variante="principal"
-          onClick={onConfirmar}
+          onClick={() => onConfirmar(metodoPago)}
           cargando={pagando}
           textoCargando="Registrando..."
           disabled={pension.montoTotal == null}

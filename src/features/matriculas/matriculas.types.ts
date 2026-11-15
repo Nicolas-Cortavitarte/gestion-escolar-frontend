@@ -1,4 +1,7 @@
 import type { Estudiante } from "../estudiantes/estudiantes.types";
+import type { MetodoPago } from "../../shared/constants/pagos";
+
+export type { MetodoPago };
 
 export interface ApoderadoNuevo {
   dni: string;
@@ -31,6 +34,7 @@ export interface InscripcionRequest {
   montoMatricula: number;
   montoPensionMensual: number;
   fechaVencimiento: number;
+  metodoPago?: MetodoPago;
 }
 
 export interface InscripcionResponse {
@@ -44,6 +48,7 @@ export interface InscripcionResponse {
     montoPensionMensual: number;
     fechaVencimiento: number;
     matriculaPagada: boolean;
+    metodoPago?: MetodoPago;
   };
 }
 
@@ -63,6 +68,7 @@ export interface CrearMatriculaRequest {
   montoPensionMensual: number;
   fechaVencimiento: number;
   mesInicioPension?: number;
+  metodoPago?: MetodoPago;
 }
 
 export type EstadoMatricula = "ACTIVA" | "RETIRADA" | "TRASLADADA";
@@ -81,5 +87,6 @@ export interface Matricula {
   fechaRegistro: string;
   matriculaPagada: boolean;
   fechaPagoMatricula: string | null;
+  metodoPago?: MetodoPago | null;
   estado?: EstadoMatricula;
 }
