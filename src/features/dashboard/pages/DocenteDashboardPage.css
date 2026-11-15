@@ -90,6 +90,11 @@
   font-size: var(--texto-pequeno);
 }
 
+.docente-dashboard__curso-card a.boton {
+  text-decoration: none;
+  align-self: flex-start;
+}
+
 .docente-dashboard__filtros {
   padding: var(--espacio-4);
   border: 1px solid var(--color-borde);
