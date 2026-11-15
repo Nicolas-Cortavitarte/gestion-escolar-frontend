@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { buscarEstudiantePorDni } from "../../estudiantes/estudiantes.service";
 import type { Estudiante } from "../../estudiantes/estudiantes.types";
 import { crearMatricula } from "../matriculas.service";
@@ -12,7 +13,22 @@ interface MatriculaExistenteFormProps {
   token: string;
 }
 
+const MESES_PENSION = [
+  { valor: 3, nombre: "Marzo" },
+  { valor: 4, nombre: "Abril" },
+  { valor: 5, nombre: "Mayo" },
+  { valor: 6, nombre: "Junio" },
+  { valor: 7, nombre: "Julio" },
+  { valor: 8, nombre: "Agosto" },
+  { valor: 9, nombre: "Septiembre" },
+  { valor: 10, nombre: "Octubre" },
+  { valor: 11, nombre: "Noviembre" },
+  { valor: 12, nombre: "Diciembre" },
+];
+
 export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
+  const anioActual = new Date().getFullYear();
+
   const [dni, setDni] = useState("");
   const [estudiante, setEstudiante] = useState<Estudiante | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -22,6 +38,8 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   const [errorMatricula, setErrorMatricula] = useState("");
   const [mensaje, setMensaje] = useState("");
 
+  const [anioLectivo, setAnioLectivo] = useState(anioActual);
+  const [mesInicioPension, setMesInicioPension] = useState("");
   const [nivel, setNivel] = useState("");
   const [grado, setGrado] = useState("");
   const [montoMatricula, setMontoMatricula] = useState("");
@@ -35,7 +53,6 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   const validacionBusqueda = useValidacion();
   const validacionMatricula = useValidacion();
 
-  const anioLectivo = new Date().getFullYear();
   const bloqueado = guardando || registrada;
 
   async function buscar(evento: FormEvent<HTMLFormElement>) {
@@ -123,12 +140,15 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
         montoMatricula: monto,
         montoPensionMensual: pension,
         fechaVencimiento: dia,
+        ...(mesInicioPension && {
+          mesInicioPension: Number(mesInicioPension),
+        }),
       });
 
       setRegistrada(true);
-      setMensaje(
-        `Matrícula registrada para ${estudiante.nombres} ${estudiante.apellidos}.`,
-      );
+      const mensajeExito = `Matrícula ${anioLectivo} registrada para ${estudiante.nombres} ${estudiante.apellidos}.`;
+      setMensaje(mensajeExito);
+      toast.success(mensajeExito);
     } catch (fallo: unknown) {
       setErrorMatricula(
         fallo instanceof Error
@@ -144,6 +164,8 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   function nuevaMatricula() {
     setDni("");
     setEstudiante(null);
+    setAnioLectivo(anioActual);
+    setMesInicioPension("");
     setNivel("");
     setGrado("");
     setMontoMatricula("");
@@ -237,6 +259,50 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
             </legend>
 
             <div className="inscripcion__campos">
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="existente-anio">
+                  Año lectivo
+                </label>
+
+                <select
+                  id="existente-anio"
+                  className="campo__entrada"
+                  value={anioLectivo}
+                  onChange={(evento) => {
+                    setAnioLectivo(Number(evento.target.value));
+                    setErrorMatricula("");
+                  }}
+                >
+                  <option value={anioActual}>{anioActual} (Actual)</option>
+                  <option value={anioActual + 1}>
+                    {anioActual + 1} (Anticipada)
+                  </option>
+                </select>
+              </div>
+
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="existente-mes-inicio">
+                  Inicio de pensiones
+                </label>
+
+                <select
+                  id="existente-mes-inicio"
+                  className="campo__entrada"
+                  value={mesInicioPension}
+                  onChange={(evento) => {
+                    setMesInicioPension(evento.target.value);
+                    setErrorMatricula("");
+                  }}
+                >
+                  <option value="">Automático (según fecha de matrícula)</option>
+                  {MESES_PENSION.map((mes) => (
+                    <option key={mes.valor} value={mes.valor}>
+                      Desde {mes.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="campo">
                 <label className="campo__etiqueta" htmlFor="existente-nivel">
                   Nivel
