@@ -15,6 +15,18 @@ export async function obtenerDocentes(token: string): Promise<Docente[]> {
   return (await respuesta.json()) as Docente[];
 }
 
+export async function obtenerMiPerfilDocente(token: string): Promise<Docente> {
+  const respuesta = await fetchApi(`${API_URL}/api/v1/docentes/mi-perfil`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  await asegurarRespuestaOk(respuesta, MENSAJE_ERROR_DOCENTES);
+
+  return (await respuesta.json()) as Docente;
+}
+
 export async function crearDocente(
   token: string,
   datos: DocenteRequest,

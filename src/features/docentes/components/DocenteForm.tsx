@@ -3,6 +3,7 @@ import { actualizarDocente, crearDocente } from "../docentes.service";
 import type { Docente } from "../docentes.types";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { Boton } from "../../../shared/components/Boton";
+import { GRADOS_POR_NIVEL } from "../../../shared/constants/academico";
 import { useValidacion } from "../../../shared/hooks/useValidacion";
 
 interface DocenteFormProps {
@@ -31,6 +32,13 @@ export function DocenteForm({
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
+  const [esTutor, setEsTutor] = useState(Boolean(docente?.esTutor));
+  const [nivelTutor, setNivelTutor] = useState(
+    docente?.nivelTutor ?? "PRIMARIA",
+  );
+  const [gradoTutor, setGradoTutor] = useState(
+    docente?.gradoTutor ?? GRADOS_POR_NIVEL.PRIMARIA[0],
+  );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
@@ -67,6 +75,9 @@ export function DocenteForm({
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
         sueldoMensual: monto,
+        esTutor,
+        nivelTutor: esTutor ? nivelTutor : null,
+        gradoTutor: esTutor ? gradoTutor : null,
       };
 
       const guardado = docente
@@ -176,6 +187,70 @@ export function DocenteForm({
           error={validacion.errores["docente-sueldo"]}
           required
         />
+      </fieldset>
+
+      <fieldset disabled={guardando}>
+        <legend>Tutoría de aula</legend>
+
+        <label
+          htmlFor="docente-es-tutor"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            marginBottom: esTutor ? "0.75rem" : 0,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            id="docente-es-tutor"
+            type="checkbox"
+            checked={esTutor}
+            onChange={(evento) => setEsTutor(evento.target.checked)}
+          />
+          <span>Asignar como tutor de un grado (puede evaluar conducta)</span>
+        </label>
+
+        {esTutor && (
+          <div className="docentes__form-grid">
+            <div className="campo">
+              <label className="campo__etiqueta" htmlFor="docente-nivel-tutor">
+                Nivel de tutoría
+              </label>
+              <select
+                id="docente-nivel-tutor"
+                className="campo__entrada"
+                value={nivelTutor}
+                onChange={(evento) => {
+                  const nuevoNivel = evento.target.value;
+                  setNivelTutor(nuevoNivel);
+                  setGradoTutor(GRADOS_POR_NIVEL[nuevoNivel]?.[0] ?? "");
+                }}
+              >
+                <option value="INICIAL">Inicial</option>
+                <option value="PRIMARIA">Primaria</option>
+              </select>
+            </div>
+
+            <div className="campo">
+              <label className="campo__etiqueta" htmlFor="docente-grado-tutor">
+                Grado de tutoría
+              </label>
+              <select
+                id="docente-grado-tutor"
+                className="campo__entrada"
+                value={gradoTutor}
+                onChange={(evento) => setGradoTutor(evento.target.value)}
+              >
+                {(GRADOS_POR_NIVEL[nivelTutor] ?? []).map((grado) => (
+                  <option key={grado} value={grado}>
+                    {grado}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </fieldset>
 
       {!docente && (

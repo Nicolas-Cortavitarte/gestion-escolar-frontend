@@ -223,7 +223,16 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
             </DocenteLayout>
           }
         >
-          <Route index element={<DocenteDashboardPage />} />
+          <Route
+            index
+            element={
+              sesion?.rol === "DOCENTE" ? (
+                <DocenteDashboardPage token={sesion.token} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
 
           <Route
             path="cursos"

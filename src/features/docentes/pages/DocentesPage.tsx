@@ -255,6 +255,7 @@ export function DocentesPage({ token }: DocentesPageProps) {
                 <tr>
                   <th scope="col">DNI</th>
                   <th scope="col">Docente</th>
+                  <th scope="col">Tutoría</th>
                   <th scope="col">Sueldo mensual</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Acciones</th>
@@ -266,6 +267,15 @@ export function DocentesPage({ token }: DocentesPageProps) {
                     <td data-label="DNI">{docente.dni}</td>
                     <td data-label="Docente">
                       {docente.nombres} {docente.apellidos}
+                    </td>
+                    <td data-label="Tutoría">
+                      {docente.esTutor && docente.gradoTutor
+                        ? `${docente.gradoTutor} (${
+                            docente.nivelTutor === "INICIAL"
+                              ? "Inicial"
+                              : "Primaria"
+                          })`
+                        : "Sin tutoría"}
                     </td>
                     <td data-label="Sueldo mensual">
                       {moneda.format(docente.sueldoMensual)}
