@@ -8,5 +8,6 @@ export interface LoginRequest {
 export interface LoginResponse {
     token: string
     correo: string
-    rol: RolUsuario   
+    rol: RolUsuario
+    nombreCompleto?: string
 }

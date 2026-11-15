@@ -472,27 +472,27 @@ export function RegistroNotasModal({
           );
         }
 
-        const guardadas = await Promise.all(
-          cambios.map(async (campo) => {
-            const calificativo = convertirNota(valores[campo.clave]);
+        const guardadas: { clave: string; calificativo: NotaCualitativa }[] = [];
 
-            if (!calificativo) {
-              throw new Error("Selecciona una calificación.");
-            }
+        for (const campo of cambios) {
+          const calificativo = convertirNota(valores[campo.clave]);
 
-            const guardada = await guardarNotaCompetencia(
-              token,
-              matricula.estudianteId,
-              {
-                competenciaId: campo.clave,
-                bimestre,
-                calificativo,
-              },
-            );
+          if (!calificativo) {
+            throw new Error("Selecciona una calificación.");
+          }
 
-            return { clave: campo.clave, calificativo: guardada.calificativo };
-          }),
-        );
+          const guardada = await guardarNotaCompetencia(
+            token,
+            matricula.estudianteId,
+            {
+              competenciaId: campo.clave,
+              bimestre,
+              calificativo,
+            },
+          );
+
+          guardadas.push({ clave: campo.clave, calificativo: guardada.calificativo });
+        }
 
         huboCambiosRef.current = true;
         notasGuardadas = guardadas.length;

@@ -4,7 +4,6 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import {
   obtenerMatriculas,
-  pagarMatricula,
   cambiarEstadoMatricula,
 } from "../matriculas.service";
 import type { EstadoMatricula, Matricula } from "../matriculas.types";
@@ -39,19 +38,13 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
   const [estado, setEstado] = useState("");
   const [pagina, setPagina] = useState(1);
 
-  const [pagando, setPagando] = useState(false);
   const [mensajePago, setMensajePago] = useState("");
-  const [errorPago, setErrorPago] = useState("");
-  const [matriculaPendiente, setMatriculaPendiente] =
-    useState<Matricula | null>(null);
-
   const [matriculaEstado, setMatriculaEstado] = useState<Matricula | null>(
     null,
   );
   const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [errorEstado, setErrorEstado] = useState("");
 
-  const pagandoRef = useRef(false);
   const guardandoEstadoRef = useRef(false);
 
   useEffect(() => {
@@ -96,9 +89,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
       (matricula) =>
         matricula.anioLectivo === Number(anio) &&
         normalizar(matricula.nombreEstudiante).includes(termino) &&
-        (estado === "" ||
-          (estado === "pagada" && matricula.matriculaPagada) ||
-          (estado === "pendiente" && !matricula.matriculaPagada)),
+        (estado === "" || (matricula.estado ?? "ACTIVA") === estado),
     )
     .sort(
       (a, b) =>
@@ -112,55 +103,6 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
     (paginaActual - 1) * POR_PAGINA,
     paginaActual * POR_PAGINA,
   );
-
-  function abrirPago(matricula: Matricula) {
-    setMensajePago("");
-    setErrorPago("");
-    setMatriculaPendiente(matricula);
-  }
-
-  function cerrarPago() {
-    if (pagandoRef.current) return;
-
-    setMatriculaPendiente(null);
-    setErrorPago("");
-  }
-
-  async function registrarPago() {
-    const seleccionada = matriculaPendiente;
-
-    if (!seleccionada || seleccionada.matriculaPagada || pagandoRef.current) {
-      return;
-    }
-
-    pagandoRef.current = true;
-    setPagando(true);
-    setErrorPago("");
-
-    try {
-      const actualizada = await pagarMatricula(token, seleccionada.id);
-
-      setMatriculas((actuales) =>
-        actuales.map((item) =>
-          item.id === actualizada.id ? actualizada : item,
-        ),
-      );
-
-      setMatriculaPendiente(null);
-      const mensajeExito = `Pago de matrícula registrado para ${seleccionada.nombreEstudiante}.`;
-      setMensajePago(mensajeExito);
-      toast.success(mensajeExito);
-    } catch (fallo: unknown) {
-      setErrorPago(
-        fallo instanceof Error
-          ? fallo.message
-          : "No se pudo registrar el pago. Inténtalo nuevamente.",
-      );
-    } finally {
-      pagandoRef.current = false;
-      setPagando(false);
-    }
-  }
 
   function abrirEstado(matricula: Matricula) {
     setMensajePago("");
@@ -258,7 +200,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
 
         <div className="campo">
           <label className="campo__etiqueta" htmlFor="matriculas-estado">
-            Pago de matrícula
+            Estado de matrícula
           </label>
 
           <select
@@ -272,8 +214,9 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
             disabled={cargando}
           >
             <option value="">Todos</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="pagada">Pagada</option>
+            <option value="ACTIVA">Activa</option>
+            <option value="RETIRADA">Retirada</option>
+            <option value="TRASLADADA">Trasladada</option>
           </select>
         </div>
       </div>
@@ -357,7 +300,6 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
                   <th scope="col">Grado</th>
                   <th scope="col">Matrícula</th>
                   <th scope="col">Pensión mensual</th>
-                  <th scope="col">Pago de matrícula</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Acciones</th>
                 </tr>
@@ -386,16 +328,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
                       <td data-label="Pensión mensual">
                         {moneda.format(matricula.montoPensionMensual)}
                       </td>
-                      <td data-label="Pago de matrícula">
-                        <BadgeEstado
-                          variante={
-                            matricula.matriculaPagada ? "exito" : "pendiente"
-                          }
-                        >
-                          {matricula.matriculaPagada ? "Pagada" : "Pendiente"}
-                        </BadgeEstado>
-                      </td>
-                      <td data-label="Estado">
+                      <td data-label="Estado" className="matriculas__celda-estado">
                         <BadgeEstado
                           variante={
                             estadoActual === "ACTIVA"
@@ -408,17 +341,8 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
                           {etiquetasEstadoMatricula[estadoActual]}
                         </BadgeEstado>
                       </td>
-                      <td data-label="Acciones">
+                      <td data-label="Acciones" className="matriculas__celda-acciones">
                         <div className="matriculas__acciones-fila">
-                          {!matricula.matriculaPagada && (
-                            <Boton
-                              onClick={() => abrirPago(matricula)}
-                              aria-label={`Registrar pago de matrícula de ${matricula.nombreEstudiante}`}
-                            >
-                              Registrar pago
-                            </Boton>
-                          )}
-
                           <Boton
                             onClick={() => abrirEstado(matricula)}
                             aria-label={`Cambiar estado de matrícula de ${matricula.nombreEstudiante}`}
@@ -443,16 +367,6 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
         </>
       )}
 
-      {matriculaPendiente && (
-        <ConfirmarPagoModal
-          matricula={matriculaPendiente}
-          pagando={pagando}
-          error={errorPago}
-          onCancelar={cerrarPago}
-          onConfirmar={() => void registrarPago()}
-        />
-      )}
-
       {matriculaEstado && (
         <CambiarEstadoMatriculaModal
           matricula={matriculaEstado}
@@ -463,101 +377,6 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
         />
       )}
     </section>
-  );
-}
-
-interface ConfirmarPagoModalProps {
-  matricula: Matricula;
-  pagando: boolean;
-  error: string;
-  onCancelar: () => void;
-  onConfirmar: () => void;
-}
-
-function ConfirmarPagoModal({
-  matricula,
-  pagando,
-  error,
-  onCancelar,
-  onConfirmar,
-}: ConfirmarPagoModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const tituloId = useId();
-  const descripcionId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const elementoAnterior = document.activeElement;
-
-    if (dialog && !dialog.open) dialog.showModal();
-
-    return () => {
-      dialog?.close();
-
-      if (
-        elementoAnterior instanceof HTMLElement &&
-        elementoAnterior.isConnected
-      ) {
-        elementoAnterior.focus();
-      } else {
-        document.getElementById("matriculas-busqueda")?.focus();
-      }
-    };
-  }, []);
-
-  return (
-    <dialog
-      ref={dialogRef}
-      className="matriculas__modal"
-      aria-labelledby={tituloId}
-      aria-describedby={descripcionId}
-      aria-busy={pagando}
-      onCancel={(evento) => {
-        evento.preventDefault();
-        onCancelar();
-      }}
-    >
-      <h2 id={tituloId}>Confirmar pago de matrícula</h2>
-      <p id={descripcionId}>
-        Registra este pago únicamente si ya recibiste el importe.
-      </p>
-
-      <dl className="matriculas__modal-detalle">
-        <div>
-          <dt>Estudiante</dt>
-          <dd>{matricula.nombreEstudiante}</dd>
-        </div>
-        <div>
-          <dt>Año lectivo</dt>
-          <dd>{matricula.anioLectivo}</dd>
-        </div>
-        <div>
-          <dt>Monto recibido</dt>
-          <dd>{moneda.format(matricula.montoMatricula)}</dd>
-        </div>
-      </dl>
-
-      {error && (
-        <p className="matriculas__error" role="alert">
-          {error}
-        </p>
-      )}
-
-      <div className="matriculas__modal-acciones">
-        <Boton onClick={onCancelar} disabled={pagando} autoFocus>
-          Cancelar
-        </Boton>
-
-        <Boton
-          variante="principal"
-          onClick={onConfirmar}
-          cargando={pagando}
-          textoCargando="Registrando..."
-        >
-          {error ? "Reintentar pago" : "Confirmar pago"}
-        </Boton>
-      </div>
-    </dialog>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router";
 import { Boton } from "../components/Boton";
+import { recuperarSesion } from "../utils/sesion";
 import "./PanelLayout.css";
 
 interface EnlacePanel {
@@ -42,6 +43,35 @@ export function PanelLayout({
   const contenidoId = `${identificador}-contenido`;
 
   const { pathname } = useLocation();
+
+  const nombreUsuario = recuperarSesion()?.nombreCompleto?.trim() || nombreRol;
+
+  const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(
+    () => {
+      const inicial: Record<string, boolean> = {};
+      let algunoActivo = false;
+      for (const grupo of grupos) {
+        const contieneRuta = grupo.enlaces.some(
+          (enlace) => enlace.ruta === pathname,
+        );
+        if (contieneRuta) {
+          inicial[grupo.titulo] = true;
+          algunoActivo = true;
+        }
+      }
+      if (!algunoActivo && grupos[0]) {
+        inicial[grupos[0].titulo] = true;
+      }
+      return inicial;
+    },
+  );
+
+  function alternarGrupo(tituloGrupo: string, abiertoActual: boolean) {
+    setGruposAbiertos((prev) => ({
+      ...prev,
+      [tituloGrupo]: !abiertoActual,
+    }));
+  }
 
   const titulo =
     grupos
@@ -180,25 +210,49 @@ export function PanelLayout({
             Inicio
           </NavLink>
 
-          {grupos.map((grupo) => (
-            <div className="panel-layout__grupo" key={grupo.titulo}>
-              <h2>{grupo.titulo}</h2>
+          {grupos.map((grupo) => {
+            const tieneRutaActiva = grupo.enlaces.some(
+              (enlace) => enlace.ruta === pathname,
+            );
+            const abierto = gruposAbiertos[grupo.titulo] ?? tieneRutaActiva;
 
-              <ul>
-                {grupo.enlaces.map((enlace) => (
-                  <li key={enlace.ruta}>
-                    <NavLink to={enlace.ruta} end onClick={cerrarMenu}>
-                      {enlace.texto}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            return (
+              <div className="panel-layout__grupo" key={grupo.titulo}>
+                <button
+                  type="button"
+                  className="panel-layout__grupo-boton"
+                  aria-expanded={abierto}
+                  onClick={() => alternarGrupo(grupo.titulo, abierto)}
+                >
+                  <span>{grupo.titulo}</span>
+                  <span
+                    className={`panel-layout__grupo-icono ${
+                      abierto ? "panel-layout__grupo-icono--abierto" : ""
+                    }`}
+                    aria-hidden="true"
+                  >
+                    ▾
+                  </span>
+                </button>
+
+                {abierto && (
+                  <ul>
+                    {grupo.enlaces.map((enlace) => (
+                      <li key={enlace.ruta}>
+                        <NavLink to={enlace.ruta} end onClick={cerrarMenu}>
+                          {enlace.texto}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="panel-layout__sidebar-account">
-          <span>{nombreRol}</span>
+          <span>{nombreUsuario}</span>
           <Boton onClick={cerrarSesion}>Cerrar sesión</Boton>
         </div>
       </aside>
@@ -225,7 +279,7 @@ export function PanelLayout({
           </div>
 
           <div className="panel-layout__desktop-account">
-            <span>{nombreRol}</span>
+            <span>{nombreUsuario}</span>
             <Boton onClick={cerrarSesion}>Cerrar sesión</Boton>
           </div>
         </header>

@@ -26,6 +26,8 @@ export function BoletasPage({ token }: BoletasPageProps) {
   const [intentoMatriculas, setIntentoMatriculas] = useState(0);
 
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
+  const [nivelFiltro, setNivelFiltro] = useState("");
+  const [gradoFiltro, setGradoFiltro] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [matriculaId, setMatriculaId] = useState("");
   const [boleta, setBoleta] = useState<Boleta | null>(null);
@@ -95,11 +97,26 @@ export function BoletasPage({ token }: BoletasPageProps) {
 
   const termino = normalizar(busqueda.trim());
 
-  const opciones = matriculas
+  const matriculasDelAnio = matriculas.filter(
+    (matricula) => matricula.anioLectivo === Number(anio),
+  );
+
+  const gradosDisponibles = Array.from(
+    new Set(
+      matriculasDelAnio
+        .filter((m) => !nivelFiltro || m.nivel === nivelFiltro)
+        .map((m) => m.grado),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "es"));
+
+  const opciones = matriculasDelAnio
     .filter(
       (matricula) =>
-        matricula.anioLectivo === Number(anio) &&
-        normalizar(matricula.nombreEstudiante).includes(termino),
+        (!nivelFiltro || matricula.nivel === nivelFiltro) &&
+        (!gradoFiltro || matricula.grado === gradoFiltro) &&
+        (termino === "" ||
+          normalizar(matricula.nombreEstudiante).includes(termino) ||
+          (matricula.dniEstudiante ?? "").includes(termino)),
     )
     .sort((a, b) => a.nombreEstudiante.localeCompare(b.nombreEstudiante, "es"));
 
@@ -272,9 +289,49 @@ export function BoletasPage({ token }: BoletasPageProps) {
             </select>
           </div>
 
+          <div className="campo">
+            <label htmlFor="boletas-nivel">Nivel</label>
+            <select
+              id="boletas-nivel"
+              className="campo__entrada"
+              value={nivelFiltro}
+              onChange={(evento) => {
+                setNivelFiltro(evento.target.value);
+                setGradoFiltro("");
+                setMatriculaId("");
+                limpiarConsulta();
+              }}
+            >
+              <option value="">Todos</option>
+              <option value="INICIAL">Inicial</option>
+              <option value="PRIMARIA">Primaria</option>
+            </select>
+          </div>
+
+          <div className="campo">
+            <label htmlFor="boletas-grado">Grado</label>
+            <select
+              id="boletas-grado"
+              className="campo__entrada"
+              value={gradoFiltro}
+              onChange={(evento) => {
+                setGradoFiltro(evento.target.value);
+                setMatriculaId("");
+                limpiarConsulta();
+              }}
+            >
+              <option value="">Todos</option>
+              {gradosDisponibles.map((grado) => (
+                <option key={grado} value={grado}>
+                  {grado}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <CampoEntrada
             id="boletas-busqueda"
-            etiqueta="Buscar estudiante"
+            etiqueta="Buscar por nombre o DNI"
             type="search"
             value={busqueda}
             onChange={(evento) => {
@@ -282,7 +339,7 @@ export function BoletasPage({ token }: BoletasPageProps) {
               setMatriculaId("");
               limpiarConsulta();
             }}
-            placeholder="Nombres o apellidos"
+            placeholder="Nombres, apellidos o DNI"
           />
 
           <div className="campo boletas-page__seleccion">

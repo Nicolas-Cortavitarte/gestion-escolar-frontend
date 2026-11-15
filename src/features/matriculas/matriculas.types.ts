@@ -72,6 +72,7 @@ export interface Matricula {
   estudianteId: string;
   anioLectivo: number;
   nombreEstudiante: string;
+  dniEstudiante?: string;
   nivel: string;
   grado: string;
   montoMatricula: number;
