@@ -208,7 +208,7 @@ export function DocenteForm({
             checked={esTutor}
             onChange={(evento) => setEsTutor(evento.target.checked)}
           />
-          <span>Asignar como tutor de un grado (puede evaluar conducta)</span>
+          <span>Asignar como tutor de un grado</span>
         </label>
 
         {esTutor && (
