@@ -62,6 +62,7 @@ export interface CrearMatriculaRequest {
   montoMatricula: number;
   montoPensionMensual: number;
   fechaVencimiento: number;
+  mesInicioPension?: number;
 }
 
 export interface Matricula {

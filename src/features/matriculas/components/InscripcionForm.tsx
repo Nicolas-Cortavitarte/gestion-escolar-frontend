@@ -4,6 +4,7 @@ import {
   type FormEvent,
   type InputHTMLAttributes,
 } from "react";
+import { toast } from "sonner";
 import { buscarApoderadoPorDni, crearInscripcion } from "../matriculas.service";
 import type {
   ApoderadoExistente,
@@ -125,7 +126,8 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
   const tituloPasoRef = useRef<HTMLHeadingElement>(null);
 
   const validacion = useValidacion();
-  const anioLectivo = new Date().getFullYear();
+  const anioActual = new Date().getFullYear();
+  const [anioLectivo, setAnioLectivo] = useState(anioActual);
 
   function cambiarPaso(nuevo: 1 | 2) {
     setPaso(nuevo);
@@ -259,9 +261,9 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
     try {
       const resultado = await crearInscripcion(token, datos);
 
-      setMensaje(
-        `Matrícula registrada para ${resultado.estudiante.nombres} ${resultado.estudiante.apellidos}.`,
-      );
+      const mensajeExito = `Matrícula ${anioLectivo} registrada para ${resultado.estudiante.nombres} ${resultado.estudiante.apellidos}.`;
+      setMensaje(mensajeExito);
+      toast.success(mensajeExito);
       setRegistrada(true);
     } catch (fallo: unknown) {
       setErrorMatricula(
@@ -478,6 +480,26 @@ export function InscripcionForm({ token }: InscripcionFormProps) {
             </legend>
 
             <div className="inscripcion__campos">
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="inscripcion-anio">
+                  Año lectivo
+                </label>
+                <select
+                  id="inscripcion-anio"
+                  className="campo__entrada"
+                  value={anioLectivo}
+                  onChange={(evento) => {
+                    setAnioLectivo(Number(evento.target.value));
+                    setErrorMatricula("");
+                  }}
+                >
+                  <option value={anioActual}>{anioActual} (Actual)</option>
+                  <option value={anioActual + 1}>
+                    {anioActual + 1} (Anticipada)
+                  </option>
+                </select>
+              </div>
+
               <div className="campo">
                 <label className="campo__etiqueta" htmlFor="inscripcion-nivel">
                   Nivel
