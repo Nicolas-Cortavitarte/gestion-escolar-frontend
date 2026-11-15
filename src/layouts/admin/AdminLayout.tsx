@@ -41,6 +41,10 @@ const grupos: readonly GrupoNavegacion[] = [
       },
     ],
   },
+  {
+    titulo: "Sistema",
+    enlaces: [{ ruta: "/admin/auditoria", texto: "Auditoría" }],
+  },
 ];
 
 export function AdminLayout({ children, onLogout }: AdminLayoutProps) {

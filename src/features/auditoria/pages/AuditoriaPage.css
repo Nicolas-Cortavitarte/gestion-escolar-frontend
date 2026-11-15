@@ -1,0 +1,15 @@
+.auditoria {
+  display: grid;
+  gap: var(--espacio-6);
+  min-width: 0;
+}
+
+.auditoria__encabezado h1 {
+  margin: 0;
+  font-size: var(--texto-titulo);
+}
+
+.auditoria__encabezado p {
+  margin: var(--espacio-2) 0 0;
+  color: var(--color-texto-secundario);
+}
