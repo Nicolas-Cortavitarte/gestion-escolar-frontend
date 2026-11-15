@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { FormEvent } from "react";
 import { obtenerCursos, obtenerMisCursos } from "../../cursos/cursos.service";
 import { obtenerCompetenciasPorCurso } from "../../competencias/competencias.service";
+import { obtenerMiPerfilDocente } from "../../docentes/docentes.service";
 import type { Curso } from "../../cursos/cursos.types";
 import type { EstudianteCurso } from "../../cursos/cursos.types";
 import type { NotaCualitativa } from "../../boletas/boletas.types";
@@ -81,9 +82,8 @@ const camposAsistencia: Campo[] = [
   },
 ];
 
-const camposConducta: Campo[] = [
+const camposTutorConducta: Campo[] = [
   ...criteriosConducta,
-  ...camposAsistencia,
   {
     clave: "apreciacionTutor",
     etiqueta: "Apreciación del tutor",
@@ -117,12 +117,6 @@ const camposPadre: Campo[] = [
     etiqueta: "Cumple los pagos de la institución",
     tipo: "nota",
   },
-];
-
-const pestañas: { id: Pestaña; etiqueta: string }[] = [
-  { id: "notas", etiqueta: "Notas" },
-  { id: "conducta", etiqueta: "Conducta y asistencia" },
-  { id: "padre", etiqueta: "Evaluación del padre" },
 ];
 
 const notasDisponibles = ["AD", "A", "B", "C"] as const;
@@ -183,6 +177,7 @@ export function RegistroNotasModal({
   const [cargandoCursos, setCargandoCursos] = useState(true);
   const [errorCursos, setErrorCursos] = useState("");
   const [intentoCursos, setIntentoCursos] = useState(0);
+  const [esTutorDelEstudiante, setEsTutorDelEstudiante] = useState(false);
 
   const [campos, setCampos] = useState<Campo[]>([]);
   const [valores, setValores] = useState<Valores>({});
@@ -243,6 +238,44 @@ export function RegistroNotasModal({
     intentoCursos,
   ]);
 
+  const pestañasVisibles: { id: Pestaña; etiqueta: string }[] =
+    modo === "admin"
+      ? [
+          { id: "notas", etiqueta: "Notas" },
+          { id: "conducta", etiqueta: "Asistencia y tardanzas" },
+          { id: "padre", etiqueta: "Evaluación del padre" },
+        ]
+      : esTutorDelEstudiante
+        ? [
+            { id: "notas", etiqueta: "Notas" },
+            { id: "conducta", etiqueta: "Conducta del alumno" },
+          ]
+        : [{ id: "notas", etiqueta: "Notas" }];
+
+  useEffect(() => {
+    if (modo !== "docente") return;
+    let activo = true;
+
+    obtenerMiPerfilDocente(token)
+      .then((perfil) => {
+        if (!activo) return;
+        setEsTutorDelEstudiante(
+          Boolean(
+            perfil.esTutor &&
+              perfil.nivelTutor === matricula.nivel &&
+              perfil.gradoTutor === matricula.grado,
+          ),
+        );
+      })
+      .catch(() => {
+        if (activo) setEsTutorDelEstudiante(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [modo, token, matricula.nivel, matricula.grado]);
+
   useEffect(() => {
     let activo = true;
 
@@ -279,26 +312,29 @@ export function RegistroNotasModal({
 
           const registro = registros.find((item) => item.bimestre === bimestre);
 
-          lista = camposConducta;
-
-          datos.conductaPuntualidadRespeto =
-            registro?.conductaPuntualidadRespeto ?? "";
-          datos.conductaActitudAula = registro?.conductaActitudAula ?? "";
-          datos.conductaPresentacionAseo =
-            registro?.conductaPresentacionAseo ?? "";
-          datos.inasistenciasJustificadas = String(
-            registro?.inasistenciasJustificadas ?? 0,
-          );
-          datos.inasistenciasInjustificadas = String(
-            registro?.inasistenciasInjustificadas ?? 0,
-          );
-          datos.tardanzasJustificadas = String(
-            registro?.tardanzasJustificadas ?? 0,
-          );
-          datos.tardanzasInjustificadas = String(
-            registro?.tardanzasInjustificadas ?? 0,
-          );
-          datos.apreciacionTutor = registro?.apreciacionTutor ?? "";
+          if (modo === "admin") {
+            lista = camposAsistencia;
+            datos.inasistenciasJustificadas = String(
+              registro?.inasistenciasJustificadas ?? 0,
+            );
+            datos.inasistenciasInjustificadas = String(
+              registro?.inasistenciasInjustificadas ?? 0,
+            );
+            datos.tardanzasJustificadas = String(
+              registro?.tardanzasJustificadas ?? 0,
+            );
+            datos.tardanzasInjustificadas = String(
+              registro?.tardanzasInjustificadas ?? 0,
+            );
+          } else {
+            lista = camposTutorConducta;
+            datos.conductaPuntualidadRespeto =
+              registro?.conductaPuntualidadRespeto ?? "";
+            datos.conductaActitudAula = registro?.conductaActitudAula ?? "";
+            datos.conductaPresentacionAseo =
+              registro?.conductaPresentacionAseo ?? "";
+            datos.apreciacionTutor = registro?.apreciacionTutor ?? "";
+          }
         } else {
           const registros = await obtenerEvaluacionesPadre(
             token,
@@ -341,6 +377,7 @@ export function RegistroNotasModal({
     pestaña,
     bimestre,
     cursoId,
+    modo,
     intentoRegistros,
   ]);
 
@@ -522,25 +559,42 @@ export function RegistroNotasModal({
         await guardarReporteConducta(token, matricula.estudianteId, {
           anioLectivo: matricula.anioLectivo,
           bimestre,
-          conductaPuntualidadRespeto: convertirNota(
-            valores.conductaPuntualidadRespeto,
-          ),
-          conductaActitudAula: convertirNota(valores.conductaActitudAula),
-          conductaPresentacionAseo: convertirNota(
-            valores.conductaPresentacionAseo,
-          ),
-          inasistenciasJustificadas: Number(valores.inasistenciasJustificadas),
-          inasistenciasInjustificadas: Number(
-            valores.inasistenciasInjustificadas,
-          ),
-          tardanzasJustificadas: Number(valores.tardanzasJustificadas),
-          tardanzasInjustificadas: Number(valores.tardanzasInjustificadas),
-          apreciacionTutor: valores.apreciacionTutor?.trim() || null,
+          conductaPuntualidadRespeto:
+            modo === "docente"
+              ? convertirNota(valores.conductaPuntualidadRespeto)
+              : null,
+          conductaActitudAula:
+            modo === "docente"
+              ? convertirNota(valores.conductaActitudAula)
+              : null,
+          conductaPresentacionAseo:
+            modo === "docente"
+              ? convertirNota(valores.conductaPresentacionAseo)
+              : null,
+          inasistenciasJustificadas:
+            modo === "admin"
+              ? Number(valores.inasistenciasJustificadas ?? 0)
+              : 0,
+          inasistenciasInjustificadas:
+            modo === "admin"
+              ? Number(valores.inasistenciasInjustificadas ?? 0)
+              : 0,
+          tardanzasJustificadas:
+            modo === "admin" ? Number(valores.tardanzasJustificadas ?? 0) : 0,
+          tardanzasInjustificadas:
+            modo === "admin"
+              ? Number(valores.tardanzasInjustificadas ?? 0)
+              : 0,
+          apreciacionTutor:
+            modo === "docente" ? valores.apreciacionTutor?.trim() || null : null,
         });
 
         huboCambiosRef.current = true;
         setOriginales({ ...valores });
-        const textoConducta = "Conducta y asistencia guardadas correctamente.";
+        const textoConducta =
+          modo === "admin"
+            ? "Asistencia y tardanzas guardadas correctamente."
+            : "Conducta del alumno guardada correctamente.";
         setMensaje(textoConducta);
         toast.success(textoConducta);
       } else {
@@ -613,7 +667,7 @@ export function RegistroNotasModal({
         role="tablist"
         aria-label="Apartados de evaluación"
       >
-        {pestañas.map(({ id: clave, etiqueta }) => (
+        {pestañasVisibles.map(({ id: clave, etiqueta }) => (
           <button
             key={clave}
             id={`${id}-tab-${clave}`}
