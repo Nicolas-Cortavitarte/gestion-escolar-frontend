@@ -13,6 +13,11 @@ import { Paginacion } from "../../../shared/components/Paginacion";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
 import { TablaSkeleton } from "../../../shared/components/TablaSkeleton";
 import { moneda, normalizar } from "../../../shared/utils/formato";
+import {
+  METODOS_PAGO,
+  etiquetaMetodoPago,
+} from "../../../shared/constants/pagos";
+import { imprimirRecibo } from "../../../shared/utils/recibo";
 import "../../../styles/listados.css";
 import "./MatriculasPage.css";
 
@@ -36,6 +41,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
   const [busqueda, setBusqueda] = useState("");
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
   const [estado, setEstado] = useState("");
+  const [metodoFiltro, setMetodoFiltro] = useState("");
   const [pagina, setPagina] = useState(1);
 
   const [mensajePago, setMensajePago] = useState("");
@@ -89,7 +95,8 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
       (matricula) =>
         matricula.anioLectivo === Number(anio) &&
         normalizar(matricula.nombreEstudiante).includes(termino) &&
-        (estado === "" || (matricula.estado ?? "ACTIVA") === estado),
+        (estado === "" || (matricula.estado ?? "ACTIVA") === estado) &&
+        (metodoFiltro === "" || (matricula.metodoPago ?? "EFECTIVO") === metodoFiltro),
     )
     .sort(
       (a, b) =>
@@ -219,6 +226,29 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
             <option value="TRASLADADA">Trasladada</option>
           </select>
         </div>
+
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="matriculas-metodo">
+            Método de pago
+          </label>
+          <select
+            id="matriculas-metodo"
+            className="campo__entrada"
+            value={metodoFiltro}
+            onChange={(evento) => {
+              setMetodoFiltro(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
+          >
+            <option value="">Todos</option>
+            {METODOS_PAGO.map((opcion) => (
+              <option key={opcion.valor} value={opcion.valor}>
+                {opcion.etiqueta}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {mensajePago && (
@@ -272,6 +302,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
               onClick={() => {
                 setBusqueda("");
                 setEstado("");
+                setMetodoFiltro("");
                 setPagina(1);
               }}
             >
@@ -300,6 +331,7 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
                   <th scope="col">Grado</th>
                   <th scope="col">Matrícula</th>
                   <th scope="col">Pensión mensual</th>
+                  <th scope="col">Método de pago</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Acciones</th>
                 </tr>
@@ -328,6 +360,12 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
                       <td data-label="Pensión mensual">
                         {moneda.format(matricula.montoPensionMensual)}
                       </td>
+                      <td data-label="Método de pago">
+                        {etiquetaMetodoPago(matricula.metodoPago)}
+                        {matricula.codigoOperacion
+                          ? ` (${matricula.codigoOperacion})`
+                          : ""}
+                      </td>
                       <td data-label="Estado" className="matriculas__celda-estado">
                         <BadgeEstado
                           variante={
@@ -348,6 +386,37 @@ export function MatriculasPage({ token }: MatriculasPageProps) {
                             aria-label={`Cambiar estado de matrícula de ${matricula.nombreEstudiante}`}
                           >
                             Cambiar estado
+                          </Boton>
+                          <Boton
+                            onClick={() => {
+                              const ok = imprimirRecibo({
+                                titulo: "Recibo de Matrícula",
+                                referencia: matricula.id,
+                                fechaPago:
+                                  matricula.fechaPagoMatricula ??
+                                  matricula.fechaRegistro,
+                                titular: matricula.nombreEstudiante,
+                                documento: matricula.dniEstudiante,
+                                concepto: `Matrícula ${matricula.anioLectivo} — ${matricula.nivel === "INICIAL" ? "Inicial" : "Primaria"} ${matricula.grado}`,
+                                detalle: [
+                                  {
+                                    etiqueta: "Derecho de matrícula",
+                                    monto: matricula.montoMatricula,
+                                  },
+                                ],
+                                total: matricula.montoMatricula,
+                                metodoPago: matricula.metodoPago,
+                                codigoOperacion: matricula.codigoOperacion,
+                              });
+                              if (!ok) {
+                                toast.error(
+                                  "Permite las ventanas emergentes para imprimir el recibo.",
+                                );
+                              }
+                            }}
+                            aria-label={`Imprimir recibo de matrícula de ${matricula.nombreEstudiante}`}
+                          >
+                            Recibo
                           </Boton>
                         </div>
                       </td>

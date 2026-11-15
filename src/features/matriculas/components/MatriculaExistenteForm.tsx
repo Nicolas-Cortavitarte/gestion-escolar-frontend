@@ -47,6 +47,7 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
   const [montoPensionMensual, setMontoPensionMensual] = useState("");
   const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
+  const [codigoOperacion, setCodigoOperacion] = useState("");
 
   const buscandoRef = useRef(false);
   const guardandoRef = useRef(false);
@@ -143,6 +144,10 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
         montoPensionMensual: pension,
         fechaVencimiento: dia,
         metodoPago,
+        ...(metodoPago !== "EFECTIVO" &&
+          codigoOperacion.trim() && {
+            codigoOperacion: codigoOperacion.trim(),
+          }),
         ...(mesInicioPension && {
           mesInicioPension: Number(mesInicioPension),
         }),
@@ -175,6 +180,7 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
     setMontoPensionMensual("");
     setFechaVencimiento("");
     setMetodoPago("EFECTIVO");
+    setCodigoOperacion("");
     setErrorBusqueda("");
     setErrorMatricula("");
     setMensaje("");
@@ -479,7 +485,9 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                   className="campo__entrada"
                   value={metodoPago}
                   onChange={(evento) => {
-                    setMetodoPago(evento.target.value as MetodoPago);
+                    const nuevoMetodo = evento.target.value as MetodoPago;
+                    setMetodoPago(nuevoMetodo);
+                    if (nuevoMetodo === "EFECTIVO") setCodigoOperacion("");
                     setErrorMatricula("");
                   }}
                   required
@@ -491,6 +499,21 @@ export function MatriculaExistenteForm({ token }: MatriculaExistenteFormProps) {
                   ))}
                 </select>
               </div>
+
+              {metodoPago !== "EFECTIVO" && (
+                <CampoEntrada
+                  id="existente-codigo-operacion"
+                  etiqueta="N.º de operación / referencia (opcional)"
+                  type="text"
+                  maxLength={60}
+                  value={codigoOperacion}
+                  onChange={(evento) => {
+                    setCodigoOperacion(evento.target.value);
+                    setErrorMatricula("");
+                  }}
+                  placeholder="Ej. 123456"
+                />
+              )}
             </div>
           </fieldset>
 

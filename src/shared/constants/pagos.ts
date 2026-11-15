@@ -12,3 +12,10 @@ export const METODOS_PAGO: { valor: MetodoPago; etiqueta: string }[] = [
   { valor: "TRANSFERENCIA", etiqueta: "Transferencia bancaria" },
   { valor: "TARJETA", etiqueta: "Tarjeta" },
 ];
+
+export function etiquetaMetodoPago(metodo?: MetodoPago | null): string {
+  if (!metodo) return "Efectivo";
+  return (
+    METODOS_PAGO.find((item) => item.valor === metodo)?.etiqueta ?? metodo
+  );
+}

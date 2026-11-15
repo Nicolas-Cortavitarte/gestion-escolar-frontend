@@ -6,7 +6,11 @@ import {
 } from "../pensiones.service";
 import { obtenerMatriculas } from "../../matriculas/matriculas.service";
 import type { MetodoPago, Pension } from "../pensiones.types";
-import { METODOS_PAGO } from "../../../shared/constants/pagos";
+import {
+  METODOS_PAGO,
+  etiquetaMetodoPago,
+} from "../../../shared/constants/pagos";
+import { imprimirRecibo } from "../../../shared/utils/recibo";
 import type { Matricula } from "../../matriculas/matriculas.types";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
@@ -55,6 +59,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
   const [mes, setMes] = useState(String(new Date().getMonth() + 1));
   const [estado, setEstado] = useState("");
+  const [metodoFiltro, setMetodoFiltro] = useState("");
   const [pagina, setPagina] = useState(1);
 
   const [pensionSeleccionada, setPensionSeleccionada] =
@@ -116,7 +121,10 @@ export function PensionesPage({ token }: PensionesPageProps) {
         matricula.anioLectivo === Number(anio) &&
         normalizar(matricula.nombreEstudiante).includes(termino) &&
         (mes === "" || pension.mes === Number(mes)) &&
-        (estado === "" || pension.estado === estado)
+        (estado === "" || pension.estado === estado) &&
+        (metodoFiltro === "" ||
+          (pension.estado === "PAGADO" &&
+            (pension.metodoPago ?? "EFECTIVO") === metodoFiltro))
       );
     })
     .sort((a, b) => {
@@ -146,7 +154,10 @@ export function PensionesPage({ token }: PensionesPageProps) {
     setErrorPago("");
   }
 
-  async function registrarPago(metodoPago: MetodoPago) {
+  async function registrarPago(
+    metodoPago: MetodoPago,
+    codigoOperacion?: string,
+  ) {
     const seleccionada = pensionSeleccionada;
 
     if (
@@ -163,7 +174,12 @@ export function PensionesPage({ token }: PensionesPageProps) {
     setErrorPago("");
 
     try {
-      const actualizada = await pagarPension(token, seleccionada.id, metodoPago);
+      const actualizada = await pagarPension(
+        token,
+        seleccionada.id,
+        metodoPago,
+        codigoOperacion,
+      );
 
       setPensiones((actuales) =>
         actuales.map((item) =>
@@ -281,6 +297,29 @@ export function PensionesPage({ token }: PensionesPageProps) {
             ))}
           </select>
         </div>
+
+        <div className="campo">
+          <label className="campo__etiqueta" htmlFor="pensiones-metodo">
+            Método de pago
+          </label>
+          <select
+            id="pensiones-metodo"
+            className="campo__entrada"
+            value={metodoFiltro}
+            onChange={(evento) => {
+              setMetodoFiltro(evento.target.value);
+              setPagina(1);
+            }}
+            disabled={cargando}
+          >
+            <option value="">Todos</option>
+            {METODOS_PAGO.map((opcion) => (
+              <option key={opcion.valor} value={opcion.valor}>
+                {opcion.etiqueta}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {mensajePago && (
@@ -348,6 +387,7 @@ export function PensionesPage({ token }: PensionesPageProps) {
                   <th scope="col">Mora</th>
                   <th scope="col">Total</th>
                   <th scope="col">Vencimiento</th>
+                  <th scope="col">Método de pago</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Acciones</th>
                 </tr>
@@ -380,6 +420,18 @@ export function PensionesPage({ token }: PensionesPageProps) {
                           .reverse()
                           .join("/")}
                       </td>
+                      <td data-label="Método de pago">
+                        {pension.estado === "PAGADO" ? (
+                          <>
+                            {etiquetaMetodoPago(pension.metodoPago)}
+                            {pension.codigoOperacion
+                              ? ` (${pension.codigoOperacion})`
+                              : ""}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                       <td data-label="Estado">
                         <BadgeEstado
                           variante={
@@ -395,7 +447,46 @@ export function PensionesPage({ token }: PensionesPageProps) {
                       </td>
                       <td data-label="Acciones">
                         {pension.estado === "PAGADO" ? (
-                          <span>Pago registrado</span>
+                          <Boton
+                            onClick={() => {
+                              const mat = matriculasPorId.get(
+                                pension.matriculaId,
+                              );
+                              const ok = imprimirRecibo({
+                                titulo: "Recibo de Pensión",
+                                referencia: pension.id,
+                                fechaPago: pension.fechaPago,
+                                titular: nombre,
+                                documento: mat?.dniEstudiante,
+                                concepto: `Pensión ${meses[pension.mes - 1]} ${pension.fechaVencimiento.slice(0, 4)}`,
+                                detalle: [
+                                  {
+                                    etiqueta: "Monto base",
+                                    monto: pension.montoBase,
+                                  },
+                                  ...(pension.moraAcumulada > 0
+                                    ? [
+                                        {
+                                          etiqueta: "Mora acumulada",
+                                          monto: pension.moraAcumulada,
+                                        },
+                                      ]
+                                    : []),
+                                ],
+                                total: pension.montoTotal,
+                                metodoPago: pension.metodoPago,
+                                codigoOperacion: pension.codigoOperacion,
+                              });
+                              if (!ok) {
+                                toast.error(
+                                  "Permite las ventanas emergentes para imprimir el recibo.",
+                                );
+                              }
+                            }}
+                            aria-label={`Imprimir recibo de ${meses[pension.mes - 1]} de ${nombre}`}
+                          >
+                            Recibo
+                          </Boton>
                         ) : (
                           <div className="pensiones__acciones-fila">
                             {pension.montoTotal == null ? (
@@ -445,7 +536,9 @@ export function PensionesPage({ token }: PensionesPageProps) {
           pagando={pagando}
           error={errorPago}
           onCancelar={cerrarPago}
-          onConfirmar={(metodoPago) => void registrarPago(metodoPago)}
+          onConfirmar={(metodoPago, codigoOperacion) =>
+            void registrarPago(metodoPago, codigoOperacion)
+          }
         />
       )}
     </section>
@@ -458,7 +551,7 @@ interface ConfirmarPagoPensionModalProps {
   pagando: boolean;
   error: string;
   onCancelar: () => void;
-  onConfirmar: (metodoPago: MetodoPago) => void;
+  onConfirmar: (metodoPago: MetodoPago, codigoOperacion?: string) => void;
 }
 
 function ConfirmarPagoPensionModal({
@@ -473,7 +566,9 @@ function ConfirmarPagoPensionModal({
   const tituloId = useId();
   const descripcionId = useId();
   const metodoId = useId();
+  const codigoOpId = useId();
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
+  const [codigoOperacion, setCodigoOperacion] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -546,7 +641,11 @@ function ConfirmarPagoPensionModal({
           id={metodoId}
           className="campo__entrada"
           value={metodoPago}
-          onChange={(evento) => setMetodoPago(evento.target.value as MetodoPago)}
+          onChange={(evento) => {
+            const nuevoMetodo = evento.target.value as MetodoPago;
+            setMetodoPago(nuevoMetodo);
+            if (nuevoMetodo === "EFECTIVO") setCodigoOperacion("");
+          }}
           disabled={pagando}
         >
           {METODOS_PAGO.map((opcion) => (
@@ -556,6 +655,21 @@ function ConfirmarPagoPensionModal({
           ))}
         </select>
       </div>
+
+      {metodoPago !== "EFECTIVO" && (
+        <div style={{ marginBottom: "1rem" }}>
+          <CampoEntrada
+            id={codigoOpId}
+            etiqueta="N.º de operación / referencia (opcional)"
+            type="text"
+            maxLength={60}
+            value={codigoOperacion}
+            onChange={(evento) => setCodigoOperacion(evento.target.value)}
+            placeholder="Ej. 123456"
+            disabled={pagando}
+          />
+        </div>
+      )}
 
       {error && (
         <p className="pensiones__error" role="alert">
@@ -570,7 +684,7 @@ function ConfirmarPagoPensionModal({
 
         <Boton
           variante="principal"
-          onClick={() => onConfirmar(metodoPago)}
+          onClick={() => onConfirmar(metodoPago, codigoOperacion)}
           cargando={pagando}
           textoCargando="Registrando..."
           disabled={pension.montoTotal == null}

@@ -14,5 +14,6 @@ export interface Pension {
   fechaVencimiento: string;
   fechaPago: string | null;
   metodoPago?: MetodoPago | null;
+  codigoOperacion?: string | null;
   estado: EstadoPension;
 }

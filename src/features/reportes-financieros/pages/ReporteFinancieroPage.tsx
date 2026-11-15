@@ -11,6 +11,7 @@ import {
   rangoMesActual,
   mostrarFecha,
 } from "../../../shared/utils/formato";
+import { etiquetaMetodoPago } from "../../../shared/constants/pagos";
 import "../../../styles/listados.css";
 import "./ReporteFinancieroPage.css";
 
@@ -252,6 +253,66 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
               </div>
             </dl>
           </section>
+
+          {reporte.resumenPorMetodoPago &&
+            reporte.resumenPorMetodoPago.length > 0 && (
+              <section
+                className="reporte-financiero__tarjeta"
+                aria-labelledby="reporte-metodos-titulo"
+              >
+                <h2 id="reporte-metodos-titulo">
+                  Cuadre por método de pago
+                </h2>
+
+                <div
+                  className="tabla-listado"
+                  role="region"
+                  aria-label="Resumen por método de pago"
+                  tabIndex={0}
+                >
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Método</th>
+                        <th scope="col">Matrículas</th>
+                        <th scope="col">Pensiones</th>
+                        <th scope="col">Total ingresos</th>
+                        <th scope="col">Pagos a docentes</th>
+                        <th scope="col">Neto del canal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reporte.resumenPorMetodoPago.map((fila) => {
+                        const neto =
+                          fila.totalIngresos - fila.egresosPagosDocentes;
+                        return (
+                          <tr key={fila.metodoPago}>
+                            <td data-label="Método">
+                              {etiquetaMetodoPago(fila.metodoPago)}
+                            </td>
+                            <td data-label="Matrículas">
+                              {moneda.format(fila.ingresosMatriculas)}
+                            </td>
+                            <td data-label="Pensiones">
+                              {moneda.format(fila.ingresosPensiones)}
+                            </td>
+                            <td data-label="Total ingresos">
+                              {moneda.format(fila.totalIngresos)}
+                            </td>
+                            <td data-label="Pagos a docentes">
+                              {moneda.format(fila.egresosPagosDocentes)}
+                            </td>
+                            <td data-label="Neto del canal">
+                              {moneda.format(neto)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
           <p className="reporte-financiero__nota">
             Los pagos se incluyen por su fecha de pago y los movimientos

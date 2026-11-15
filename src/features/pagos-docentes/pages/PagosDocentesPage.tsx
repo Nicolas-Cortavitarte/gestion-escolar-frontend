@@ -1,7 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { obtenerPagosDocentes, pagarDocente } from "../pagos-docentes.service";
-import type { PagoDocente } from "../pagos-docentes.types";
+import type { MetodoPago, PagoDocente } from "../pagos-docentes.types";
+import {
+  METODOS_PAGO,
+  etiquetaMetodoPago,
+} from "../../../shared/constants/pagos";
+import { imprimirRecibo } from "../../../shared/utils/recibo";
 import { Boton } from "../../../shared/components/Boton";
 import { CampoEntrada } from "../../../shared/components/CampoEntrada";
 import { BadgeEstado } from "../../../shared/components/BadgeEstado";
@@ -128,7 +133,10 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
     setErrorPago("");
   }
 
-  async function registrarPago() {
+  async function registrarPago(
+    metodoPago: MetodoPago,
+    codigoOperacion?: string,
+  ) {
     const seleccionado = pagoSeleccionado;
 
     if (
@@ -144,7 +152,12 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
     setErrorPago("");
 
     try {
-      const actualizado = await pagarDocente(token, seleccionado.id);
+      const actualizado = await pagarDocente(
+        token,
+        seleccionado.id,
+        metodoPago,
+        codigoOperacion,
+      );
 
       setPagos((actuales) =>
         actuales.map((item) =>
@@ -349,6 +362,7 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
                   <th scope="col">Monto</th>
                   <th scope="col">Fecha programada</th>
                   <th scope="col">Fecha de pago</th>
+                  <th scope="col">Método de pago</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Acciones</th>
                 </tr>
@@ -367,6 +381,18 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
                         ? fechaPago.format(new Date(pago.fechaPago))
                         : "Sin pago"}
                     </td>
+                    <td data-label="Método de pago">
+                      {pago.estado === "PAGADO" ? (
+                        <>
+                          {etiquetaMetodoPago(pago.metodoPago)}
+                          {pago.codigoOperacion
+                            ? ` (${pago.codigoOperacion})`
+                            : ""}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td data-label="Estado">
                       <BadgeEstado
                         variante={
@@ -382,7 +408,34 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
                     </td>
                     <td data-label="Acciones">
                       {pago.estado === "PAGADO" ? (
-                        <span>Pago registrado</span>
+                        <Boton
+                          onClick={() => {
+                            const ok = imprimirRecibo({
+                              titulo: "Constancia de Pago a Docente",
+                              referencia: pago.id,
+                              fechaPago: pago.fechaPago,
+                              titular: pago.nombresDocente,
+                              concepto: `Remuneración ${meses[pago.mes - 1]} ${pago.anio}`,
+                              detalle: [
+                                {
+                                  etiqueta: `Haberes ${meses[pago.mes - 1]} ${pago.anio}`,
+                                  monto: pago.monto,
+                                },
+                              ],
+                              total: pago.monto,
+                              metodoPago: pago.metodoPago,
+                              codigoOperacion: pago.codigoOperacion,
+                            });
+                            if (!ok) {
+                              toast.error(
+                                "Permite las ventanas emergentes para imprimir el recibo.",
+                              );
+                            }
+                          }}
+                          aria-label={`Imprimir constancia de pago de ${meses[pago.mes - 1]} de ${pago.nombresDocente}`}
+                        >
+                          Recibo
+                        </Boton>
                       ) : (
                         <Boton
                           onClick={() => {
@@ -419,7 +472,9 @@ export function PagosDocentesPage({ token }: PagosDocentesPageProps) {
           pagando={pagando}
           error={errorPago}
           onCancelar={cerrarPago}
-          onConfirmar={() => void registrarPago()}
+          onConfirmar={(metodoPago, codigoOperacion) =>
+            void registrarPago(metodoPago, codigoOperacion)
+          }
         />
       )}
     </section>
@@ -431,7 +486,7 @@ interface ConfirmarPagoDocenteModalProps {
   pagando: boolean;
   error: string;
   onCancelar: () => void;
-  onConfirmar: () => void;
+  onConfirmar: (metodoPago: MetodoPago, codigoOperacion?: string) => void;
 }
 
 function ConfirmarPagoDocenteModal({
@@ -444,6 +499,10 @@ function ConfirmarPagoDocenteModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const tituloId = useId();
   const descripcionId = useId();
+  const metodoId = useId();
+  const codigoOpId = useId();
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
+  const [codigoOperacion, setCodigoOperacion] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -499,6 +558,44 @@ function ConfirmarPagoDocenteModal({
         </div>
       </dl>
 
+      <div className="campo" style={{ marginBottom: "1rem" }}>
+        <label className="campo__etiqueta" htmlFor={metodoId}>
+          Método de pago
+        </label>
+        <select
+          id={metodoId}
+          className="campo__entrada"
+          value={metodoPago}
+          onChange={(evento) => {
+            const nuevoMetodo = evento.target.value as MetodoPago;
+            setMetodoPago(nuevoMetodo);
+            if (nuevoMetodo === "EFECTIVO") setCodigoOperacion("");
+          }}
+          disabled={pagando}
+        >
+          {METODOS_PAGO.map((opcion) => (
+            <option key={opcion.valor} value={opcion.valor}>
+              {opcion.etiqueta}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {metodoPago !== "EFECTIVO" && (
+        <div style={{ marginBottom: "1rem" }}>
+          <CampoEntrada
+            id={codigoOpId}
+            etiqueta="N.º de operación / referencia (opcional)"
+            type="text"
+            maxLength={60}
+            value={codigoOperacion}
+            onChange={(evento) => setCodigoOperacion(evento.target.value)}
+            placeholder="Ej. 123456"
+            disabled={pagando}
+          />
+        </div>
+      )}
+
       {error && (
         <p className="pagos-docentes__error" role="alert">
           {error}
@@ -511,7 +608,7 @@ function ConfirmarPagoDocenteModal({
         </Boton>
         <Boton
           variante="principal"
-          onClick={onConfirmar}
+          onClick={() => onConfirmar(metodoPago, codigoOperacion)}
           cargando={pagando}
           textoCargando="Registrando..."
         >
