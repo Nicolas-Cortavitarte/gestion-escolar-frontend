@@ -64,6 +64,11 @@ const BoletasPage = lazy(() =>
     default: m.BoletasPage,
   })),
 );
+const AuditoriaPage = lazy(() =>
+  import("../../features/auditoria/pages/AuditoriaPage").then((m) => ({
+    default: m.AuditoriaPage,
+  })),
+);
 const DocenteDashboardPage = lazy(() =>
   import("../../features/dashboard/pages/DocenteDashboardPage").then((m) => ({
     default: m.DocenteDashboardPage,
@@ -196,6 +201,11 @@ export function AppRoutes({ sesion, onLogin, onLogout }: AppRoutesProps) {
               <Route
                 path="boletas"
                 element={<BoletasPage token={sesion.token} />}
+              />
+
+              <Route
+                path="auditoria"
+                element={<AuditoriaPage token={sesion.token} />}
               />
             </>
           )}
