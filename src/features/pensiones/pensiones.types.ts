@@ -1,3 +1,7 @@
+import type { MetodoPago } from "../../shared/constants/pagos";
+
+export type { MetodoPago };
+
 export type EstadoPension = "PENDIENTE" | "PAGADO" | "EN_MORA";
 
 export interface Pension {
@@ -9,5 +13,6 @@ export interface Pension {
   montoTotal: number;
   fechaVencimiento: string;
   fechaPago: string | null;
+  metodoPago?: MetodoPago | null;
   estado: EstadoPension;
 }
