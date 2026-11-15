@@ -3,6 +3,7 @@ import type {
   InscripcionResponse,
   ApoderadoExistente,
   CrearMatriculaRequest,
+  EstadoMatricula,
   Matricula,
 } from "./matriculas.types";
 import { API_URL, asegurarRespuestaOk, fetchApi } from "../../shared/api/api";
@@ -98,6 +99,31 @@ export async function pagarMatricula(
   await asegurarRespuestaOk(
     respuesta,
     "No se pudo registrar el pago de matrícula.",
+  );
+
+  return (await respuesta.json()) as Matricula;
+}
+
+export async function cambiarEstadoMatricula(
+  token: string,
+  id: string,
+  estado: EstadoMatricula,
+): Promise<Matricula> {
+  const respuesta = await fetchApi(
+    `${API_URL}/api/v1/matriculas/${encodeURIComponent(id)}/estado`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ estado }),
+    },
+  );
+
+  await asegurarRespuestaOk(
+    respuesta,
+    "No se pudo actualizar el estado de la matrícula.",
   );
 
   return (await respuesta.json()) as Matricula;

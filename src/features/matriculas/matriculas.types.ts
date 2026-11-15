@@ -65,6 +65,8 @@ export interface CrearMatriculaRequest {
   mesInicioPension?: number;
 }
 
+export type EstadoMatricula = "ACTIVA" | "RETIRADA" | "TRASLADADA";
+
 export interface Matricula {
   id: string;
   estudianteId: string;
@@ -78,4 +80,5 @@ export interface Matricula {
   fechaRegistro: string;
   matriculaPagada: boolean;
   fechaPagoMatricula: string | null;
+  estado?: EstadoMatricula;
 }
