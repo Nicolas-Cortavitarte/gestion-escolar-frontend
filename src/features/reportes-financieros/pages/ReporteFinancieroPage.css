@@ -119,6 +119,43 @@
   line-height: 1.5;
 }
 
+.reporte-financiero__tarjeta--metodos .tabla-listado {
+  border: 0;
+  border-radius: 0;
+}
+
+.reporte-financiero__tarjeta--metodos thead th {
+  background: var(--color-fondo);
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-pequeno);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.reporte-financiero__fila--inactiva td {
+  color: var(--color-texto-secundario);
+}
+
+.reporte-financiero__neto--positivo {
+  color: var(--verde-base);
+  font-weight: 700;
+}
+
+.reporte-financiero__neto--negativo {
+  color: var(--rojo-base);
+  font-weight: 700;
+}
+
+.reporte-financiero__neto--cero {
+  color: var(--color-texto-secundario);
+}
+
+@media (min-width: 768px) {
+  .reporte-financiero__tarjeta--metodos .reporte-financiero__monto {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 @media (min-width: 640px) {
   .reporte-financiero__fechas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
