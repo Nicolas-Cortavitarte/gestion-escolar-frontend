@@ -257,7 +257,7 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
           {reporte.resumenPorMetodoPago &&
             reporte.resumenPorMetodoPago.length > 0 && (
               <section
-                className="reporte-financiero__tarjeta"
+                className="reporte-financiero__tarjeta reporte-financiero__tarjeta--metodos"
                 aria-labelledby="reporte-metodos-titulo"
               >
                 <h2 id="reporte-metodos-titulo">
@@ -274,35 +274,81 @@ export function ReporteFinancieroPage({ token }: ReporteFinancieroPageProps) {
                     <thead>
                       <tr>
                         <th scope="col">Método</th>
-                        <th scope="col">Matrículas</th>
-                        <th scope="col">Pensiones</th>
-                        <th scope="col">Total ingresos</th>
-                        <th scope="col">Pagos a docentes</th>
-                        <th scope="col">Neto del canal</th>
+                        <th scope="col" className="reporte-financiero__monto">
+                          Matrículas
+                        </th>
+                        <th scope="col" className="reporte-financiero__monto">
+                          Pensiones
+                        </th>
+                        <th scope="col" className="reporte-financiero__monto">
+                          Total ingresos
+                        </th>
+                        <th scope="col" className="reporte-financiero__monto">
+                          Pagos a docentes
+                        </th>
+                        <th scope="col" className="reporte-financiero__monto">
+                          Neto del canal
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {reporte.resumenPorMetodoPago.map((fila) => {
                         const neto =
                           fila.totalIngresos - fila.egresosPagosDocentes;
+                        const sinMovimiento =
+                          fila.totalIngresos === 0 &&
+                          fila.egresosPagosDocentes === 0;
+                        const claseNeto =
+                          neto > 0
+                            ? "reporte-financiero__neto--positivo"
+                            : neto < 0
+                              ? "reporte-financiero__neto--negativo"
+                              : "reporte-financiero__neto--cero";
+
                         return (
-                          <tr key={fila.metodoPago}>
+                          <tr
+                            key={fila.metodoPago}
+                            className={
+                              sinMovimiento
+                                ? "reporte-financiero__fila--inactiva"
+                                : undefined
+                            }
+                          >
                             <td data-label="Método">
-                              {etiquetaMetodoPago(fila.metodoPago)}
+                              <strong>
+                                {etiquetaMetodoPago(fila.metodoPago)}
+                              </strong>
                             </td>
-                            <td data-label="Matrículas">
+                            <td
+                              data-label="Matrículas"
+                              className="reporte-financiero__monto"
+                            >
                               {moneda.format(fila.ingresosMatriculas)}
                             </td>
-                            <td data-label="Pensiones">
+                            <td
+                              data-label="Pensiones"
+                              className="reporte-financiero__monto"
+                            >
                               {moneda.format(fila.ingresosPensiones)}
                             </td>
-                            <td data-label="Total ingresos">
-                              {moneda.format(fila.totalIngresos)}
+                            <td
+                              data-label="Total ingresos"
+                              className="reporte-financiero__monto"
+                            >
+                              <strong>
+                                {moneda.format(fila.totalIngresos)}
+                              </strong>
                             </td>
-                            <td data-label="Pagos a docentes">
+                            <td
+                              data-label="Pagos a docentes"
+                              className="reporte-financiero__monto"
+                            >
                               {moneda.format(fila.egresosPagosDocentes)}
                             </td>
-                            <td data-label="Neto del canal">
+                            <td
+                              data-label="Neto del canal"
+                              className={`reporte-financiero__monto ${claseNeto}`}
+                            >
                               {moneda.format(neto)}
                             </td>
                           </tr>
